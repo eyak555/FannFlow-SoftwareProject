@@ -1,0 +1,92 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <div class="module-workspace">
+    <aside class="module-sidebar" aria-label="Navigation de l’espace">
+      <a class="module-sidebar-home" href="{% url 'core:home' %}">
+        <span aria-hidden="true">←</span> Tableau de bord
+      </a>
+      <div class="module-sidebar-heading">
+        <strong>{{ module.title }}</strong>
+      </div>
+      <nav class="module-side-nav">
+        <a class="is-active" href="{% url module.app_name|add:':home' %}">
+          <span aria-hidden="true">⌂</span> Vue générale
+        </a>
+        {% for entity in module.entities %}
+          <a href="{% url module.app_name|add:':entity_list' entity.slug %}">
+            <span aria-hidden="true">•</span> {{ entity.name }}
+          </a>
+        {% endfor %}
+      </nav>
+    </aside>
+
+    <div class="module-workspace-content">
+      <header class="module-page-header">
+        <div>
+          <p class="eyebrow">Espace de gestion</p>
+          <h1>{{ page_title }}</h1>
+          {% if page_intro %}<p class="lede">{{ page_intro }}</p>{% endif %}
+        </div>
+      </header>
+
+      <section class="module-stat-grid" aria-label="Résumé de l’espace">
+        <article class="module-stat">
+          <span>Entités</span>
+          <strong>{{ module.entities|length }}</strong>
+          <small>dans cet espace</small>
+        </article>
+        <article class="module-stat">
+          <span>Éléments</span>
+          <strong>—</strong>
+          <small>après implémentation</small>
+        </article>
+        <article class="module-stat module-stat--accent">
+          <span>Statut</span>
+          <strong>Prêt</strong>
+          <small>structure commune</small>
+        </article>
+      </section>
+
+      <section class="module-content-grid">
+        <div class="module-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Gestion</p>
+              <h2>Fonctionnalités disponibles</h2>
+            </div>
+          </div>
+          <div class="module-entity-grid" aria-label="Fonctionnalités disponibles">
+            {% for entity in module.entities %}
+              <article class="module-entity-card">
+                <span class="entity-index" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+                <div class="entity-card-content">
+                  <h3>{{ entity.name }}</h3>
+                  <p>Créer, consulter et gérer les données de cette fonctionnalité.</p>
+                </div>
+                <div class="entity-actions">
+                  <a class="btn btn-secondary" href="{% url module.app_name|add:':entity_list' entity.slug %}">Ouvrir</a>
+                  <a class="btn btn-primary" href="{% url module.app_name|add:':entity_create' entity.slug %}">Ajouter</a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+
+        <aside class="module-panel module-info-panel" aria-label="Informations de l’espace">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">À venir</p>
+              <h2>Prochaine étape</h2>
+            </div>
+          </div>
+          <div class="module-info-state">
+            <span aria-hidden="true">+</span>
+            <strong>Implémenter le CRUD</strong>
+            <p>Le membre responsable ajoute les modèles, formulaires et données métier dans sa branche.</p>
+          </div>
+        </aside>
+      </section>
+    </div>
+  </div>
+{% endblock %}

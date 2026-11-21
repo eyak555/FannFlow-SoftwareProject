@@ -1,0 +1,36 @@
+{% load static %}
+<header class="site-header">
+  <div class="nav-bar">
+    <div class="bar-inner nav-bar__inner">
+      <input class="nav-toggle" type="checkbox" id="nav-toggle">
+      <label class="nav-burger" for="nav-toggle">Menu</label>
+      <nav aria-label="Navigation principale">
+        <ul class="nav-list">
+          <li class="nav-logo-item">
+            <a class="nav-logo" href="{% url 'core:home' %}" aria-label="Accueil FannFlow">
+              <img src="{% static 'core/img/logo.png' %}" alt="FannFlow">
+            </a>
+          </li>
+          <li>
+            <a href="{% url 'core:home' %}"
+               {% if request.resolver_match.app_name == "core" and request.resolver_match.url_name == "home" %}aria-current="page"{% endif %}>
+              Accueil
+            </a>
+          </li>
+          {% for module in fannflow_modules %}
+            <li>
+              <a href="{% url module.app_name|add:':home' %}"
+                 {% if request.resolver_match.app_name == module.app_name and request.resolver_match.url_name != "login" %}aria-current="page"{% endif %}>
+                {{ module.title }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </nav>
+      <a class="header-profile" href="{% url 'users_teams:login' %}" aria-label="Se connecter">
+        <span>Connexion</span>
+        <strong aria-hidden="true">A</strong>
+      </a>
+    </div>
+  </div>
+</header>

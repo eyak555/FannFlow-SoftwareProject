@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <h1>{{ page_title }}</h1>
+    </div>
+  </header>
+
+  <form class="ff-form" method="post">
+    {% csrf_token %}
+    {% block delete_message %}
+      <p>
+        Confirmer la suppression
+        {% if object %}de {{ object }}{% elif entity %}de {{ entity.name }}{% endif %}
+        {% if pk %}<span class="data">(pk {{ pk }})</span>{% endif %}.
+      </p>
+    {% endblock %}
+    {% block delete_extra %}{% endblock %}
+    <div class="form-actions">
+      {% if placeholder %}
+        <button type="submit" class="btn btn-danger" disabled>Supprimer</button>
+      {% else %}
+        <button type="submit" class="btn btn-danger">Supprimer</button>
+      {% endif %}
+      {% if entity %}
+        <a class="btn btn-secondary" href="{% url module.app_name|add:':entity_list' entity.slug %}">Annuler</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if placeholder %}
+    {% include "core/components/placeholder_note.html" %}
+  {% endif %}
+{% endblock %}

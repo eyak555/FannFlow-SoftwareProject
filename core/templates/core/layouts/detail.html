@@ -1,0 +1,33 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <h1>{{ page_title }}</h1>
+      {% if pk %}<p class="data">pk {{ pk }}</p>{% endif %}
+      {% if page_intro %}<p class="lede">{{ page_intro }}</p>{% endif %}
+    </div>
+    <div class="page-header__actions">
+      {% block page_actions %}
+        {% if entity and pk %}
+          <a class="btn btn-secondary" href="{% url module.app_name|add:':entity_update' entity.slug pk %}">Modification</a>
+          <a class="btn btn-danger" href="{% url module.app_name|add:':entity_delete' entity.slug pk %}">Suppression</a>
+        {% endif %}
+      {% endblock %}
+    </div>
+  </header>
+
+  <dl class="detail">
+    {% block detail_fields %}
+      <dt>Élément</dt>
+      <dd>{{ entity.name }}</dd>
+      {% if pk %}<dt>Identifiant</dt><dd class="data">{{ pk }}</dd>{% endif %}
+      <dt>Statut</dt>
+      <dd>{% if placeholder %}À implémenter{% endif %}</dd>
+    {% endblock %}
+  </dl>
+
+  {% if placeholder %}
+    {% include "core/components/placeholder_note.html" %}
+  {% endif %}
+{% endblock %}

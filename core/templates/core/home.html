@@ -1,0 +1,61 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <section class="overview-hero">
+    <div class="overview-hero__copy">
+      <p class="eyebrow">Plateforme culturelle intelligente</p>
+      <h1>Créer, organiser et vivre les événements culturels</h1>
+      <p>FannFlow rassemble les équipes, le programme, les inscriptions, les ressources, les financements et la communication dans un seul espace.</p>
+      <div class="overview-actions">
+        <a class="btn btn-primary" href="{% url 'events_program:home' %}">Découvrir les événements</a>
+        <a class="btn btn-secondary" href="{% url 'users_teams:login' %}">Se connecter</a>
+      </div>
+    </div>
+    <div class="overview-hero__visual" aria-hidden="true">
+      <span class="visual-ring visual-ring--one"></span>
+      <span class="visual-ring visual-ring--two"></span>
+      <span class="visual-mark">F</span>
+    </div>
+  </section>
+
+  <section class="overview-section" aria-labelledby="overview-domains">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Tout votre événement</p>
+        <h2 id="overview-domains">Un espace pour chaque besoin</h2>
+      </div>
+    </div>
+    <div class="overview-domain-grid">
+      {% for item in fannflow_modules %}
+        <a class="overview-domain" href="{% url item.app_name|add:':home' %}">
+          <span aria-hidden="true">•</span>
+          <div>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.summary }}</p>
+          </div>
+          <b aria-hidden="true">→</b>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="overview-section" aria-labelledby="overview-values">
+    <div class="overview-values">
+      <article>
+        <span>01</span>
+        <h2 id="overview-values">Centralisation</h2>
+        <p>Retrouvez les informations essentielles de chaque événement au même endroit.</p>
+      </article>
+      <article>
+        <span>02</span>
+        <h2>Collaboration</h2>
+        <p>Coordonnez les organisateurs, équipes, partenaires et participants.</p>
+      </article>
+      <article>
+        <span>03</span>
+        <h2>Intelligence</h2>
+        <p>Préparez des décisions éclairées grâce aux analyses et recommandations.</p>
+      </article>
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Users & Organization Teams</p>
+      <h1>Connexion</h1>
+      <p class="lede">Authentification par email / mot de passe et OAuth Google.</p>
+    </div>
+  </header>
+
+  <form class="ff-form" method="post" novalidate>
+    {% csrf_token %}
+    <div class="field">
+      <label for="email">Email</label>
+      <input class="ff-input" id="email" name="email" type="email" autocomplete="email" disabled>
+    </div>
+    <div class="field">
+      <label for="password">Mot de passe</label>
+      <input class="ff-input" id="password" name="password" type="password" autocomplete="current-password" disabled>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="button" disabled>Se connecter</button>
+      <button class="btn btn-secondary" type="button" disabled>Continuer avec Google</button>
+    </div>
+  </form>
+  {% include "core/components/placeholder_note.html" %}
+{% endblock %}

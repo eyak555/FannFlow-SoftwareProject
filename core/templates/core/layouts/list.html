@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <h1>{{ page_title }}</h1>
+      {% if page_intro %}<p class="lede">{{ page_intro }}</p>{% endif %}
+    </div>
+    <div class="page-header__actions">
+      {% block page_actions %}
+        {% if entity %}
+          <a class="btn btn-primary" href="{% url module.app_name|add:':entity_create' entity.slug %}">Création</a>
+        {% endif %}
+      {% endblock %}
+    </div>
+  </header>
+
+  {% block filters %}{% endblock %}
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <caption class="visually-hidden">{{ page_title }}</caption>
+      <thead>
+        {% block table_head %}
+          {% if entity.fields %}
+                <tr>
+                  <th scope="col">{{ entity.name }}</th>
+                  <th scope="col">Statut</th>
+                  <th scope="col">Actions</th>
+                </tr>
+          {% endif %}
+        {% endblock %}
+      </thead>
+      <tbody>
+        {% block table_body %}
+          {% if placeholder %}
+            <tr>
+              <td class="empty-cell" colspan="{{ entity.fields|length|default:1 }}">
+                {% include "core/components/empty_state.html" with title="Aucune donnée"                 text="La liste sera alimentée lorsque les données de cette fonctionnalité seront disponibles." %}
+              </td>
+            </tr>
+          {% endif %}
+        {% endblock %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include "core/components/pagination.html" %}
+
+  {% block after_table %}
+    {% if placeholder %}
+      {% include "core/components/placeholder_note.html" %}
+    {% endif %}
+  {% endblock %}
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <section class="empty-page">
+    {% include "core/components/empty_state.html" with title="Page introuvable" text="Cette page n’existe pas ou n’a pas encore été ajoutée." %}
+    <a class="btn btn-primary" href="{% url 'core:home' %}">Retour à l’accueil</a>
+  </section>
+{% endblock %}

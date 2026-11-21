@@ -1,0 +1,56 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <h1>{{ page_title }}</h1>
+      {% if page_intro %}<p class="lede">{{ page_intro }}</p>{% endif %}
+    </div>
+  </header>
+
+  <form class="ff-form" method="post" novalidate>
+    {% csrf_token %}
+    {% block form_fields %}
+      {% if form %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+          <div class="field{% if field.errors %} field--error{% endif %}">
+            {% if field.widget_type == "checkbox" %}
+              <label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>
+            {% else %}
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+            {% endif %}
+            {% if field.help_text %}<p class="hint">{{ field.help_text }}</p>{% endif %}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+      {% elif placeholder %}
+        <div class="form-placeholder">
+          <span aria-hidden="true">+</span>
+          <div>
+            <strong>{{ entity.name }}</strong>
+            <p>Les champs spécifiques seront ajoutés dans la branche de cette fonctionnalité.</p>
+          </div>
+        </div>
+      {% endif %}
+    {% endblock %}
+
+    <div class="form-actions">
+      {% block form_actions %}
+        {% if placeholder %}
+          <button type="submit" class="btn btn-primary" disabled>Enregistrer</button>
+          {% if entity %}
+            <a class="btn btn-secondary" href="{% url module.app_name|add:':entity_list' entity.slug %}">Retour à la liste</a>
+          {% endif %}
+        {% else %}
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        {% endif %}
+      {% endblock %}
+    </div>
+  </form>
+
+  {% if placeholder %}
+    {% include "core/components/placeholder_note.html" %}
+  {% endif %}
+{% endblock %}

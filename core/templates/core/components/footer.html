@@ -1,0 +1,28 @@
+{% load static %}
+<footer class="site-footer">
+  <div class="site-footer__inner footer-grid">
+    <div class="footer-brand">
+      <a href="{% url 'core:home' %}" aria-label="FannFlow - Accueil">
+        <img src="{% static 'core/img/logo.png' %}" alt="FannFlow">
+      </a>
+      <p>Une plateforme pensée pour centraliser la gestion des événements culturels.</p>
+    </div>
+    <nav class="footer-links" aria-label="Navigation secondaire">
+      <strong>Découvrir</strong>
+      <a href="{% url 'core:home' %}">Accueil</a>
+      {% for module in fannflow_modules %}
+        <a href="{% url module.app_name|add:':home' %}">{{ module.title }}</a>
+      {% endfor %}
+    </nav>
+    <nav class="footer-links" aria-label="Accès">
+      <strong>Accès</strong>
+      <a href="{% url 'users_teams:login' %}">Se connecter</a>
+      <a href="{% url 'core:home' %}#contenu">À propos de FannFlow</a>
+      <a href="#contenu">Retour en haut</a>
+    </nav>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 FannFlow</p>
+    <p>Gestion intelligente des événements culturels</p>
+  </div>
+</footer>

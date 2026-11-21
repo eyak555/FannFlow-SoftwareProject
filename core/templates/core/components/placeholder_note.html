@@ -1,0 +1,24 @@
+<aside class="placeholder-note">
+  <h2>Fonctionnalité à compléter dans la branche responsable</h2>
+  <p>
+    L’opération « {{ action_label }} » de <strong>{{ entity.name }}</strong>
+    n’est pas implémentée. Aucune donnée n’est enregistrée.
+  </p>
+  {% if entity.note %}<p>{{ entity.note }}</p>{% endif %}
+  {% if entity.operations %}
+    <h3>Opérations indiquées dans le cahier</h3>
+    <ul>
+      {% for item in entity.operations %}
+        <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if entity.advanced %}
+    <h3>Fonctionnalités avancées indiquées dans le cahier</h3>
+    <ul>
+      {% for item in entity.advanced %}
+        <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</aside>
