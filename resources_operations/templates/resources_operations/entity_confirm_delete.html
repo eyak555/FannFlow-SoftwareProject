@@ -1,0 +1,15 @@
+{% extends "core/layouts/confirm_delete.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "resources_operations/components/navigation.html" %}
+  {{ block.super }}
+{% endblock %}
+
+{% block delete_message %}
+  <p>Voulez-vous supprimer définitivement la fiche <strong>« {{ object }} »</strong> ?</p>
+{% endblock %}
+
+{% block delete_extra %}{{ form.non_field_errors }}{% endblock %}

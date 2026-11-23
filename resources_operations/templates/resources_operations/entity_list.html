@@ -1,0 +1,127 @@
+{% extends "core/layouts/list.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "resources_operations/components/navigation.html" %}
+  {{ block.super }}
+{% endblock %}
+
+{% block page_actions %}
+  <a class="btn btn-primary" href="{% url 'resources_operations:entity_create' entity.slug %}">{{ entity.create_label }}</a>
+{% endblock %}
+
+{% block filters %}
+  <form class="operations-filters" method="get">
+    <div class="field operations-search">
+      <label for="operations-search">Rechercher</label>
+      <input class="ff-input" id="operations-search" type="search" name="q" value="{{ search }}"
+             maxlength="150" placeholder="{{ entity.search_label }}">
+    </div>
+    <div class="field">
+      <label for="operations-filter">{{ entity.filter_label }}</label>
+      <select class="ff-input" id="operations-filter" name="filter">
+        <option value="">Tous</option>
+        {% for value, label in entity.filters %}
+          <option value="{{ value }}"{% if selected_filter == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="entity-actions">
+      <button class="btn btn-primary" type="submit">Appliquer</button>
+      {% if search or selected_filter %}
+        <a class="btn btn-secondary" href="{% url 'resources_operations:entity_list' entity.slug %}">Réinitialiser</a>
+      {% endif %}
+    </div>
+  </form>
+  <p class="operations-results">{{ results_page.paginator.count }} résultat{{ results_page.paginator.count|pluralize }}</p>
+{% endblock %}
+
+{% block table_head %}
+  <tr>
+    {% if entity.slug == "venues" %}
+      <th scope="col">Lieu</th>
+      <th scope="col">Adresse</th>
+      <th scope="col">Capacité</th>
+      <th scope="col">Accessibilité</th>
+    {% elif entity.slug == "resources" %}
+      <th scope="col">Ressource</th>
+      <th scope="col">Emplacement</th>
+      <th scope="col">Stock</th>
+      <th scope="col">Coût unitaire</th>
+    {% else %}
+      <th scope="col">Ressource et événement</th>
+      <th scope="col">Quantité</th>
+      <th scope="col">Période</th>
+      <th scope="col">Statut</th>
+    {% endif %}
+    <th scope="col">Actions</th>
+  </tr>
+{% endblock %}
+
+{% block table_body %}
+  {% for object in object_list %}
+    <tr>
+      <th scope="row">
+        <a href="{% url 'resources_operations:entity_detail' entity.slug object.pk %}">
+          {% if entity.slug == "resource-allocations" %}{{ object.resource.name }}{% else %}{{ object.name }}{% endif %}
+        </a>
+        <span class="operations-table-caption">
+          {% if entity.slug == "resource-allocations" %}Événement n° {{ object.event_id }}{% else %}{{ object.type }}{% endif %}
+        </span>
+      </th>
+      {% if entity.slug == "venues" %}
+        <td>{{ object.address }}</td>
+        <td class="data">{{ object.capacity }}</td>
+        <td>
+          {% if object.accessibility %}
+            <span class="operations-status operations-status--positive">Accessible PMR</span>
+          {% else %}
+            <span class="operations-status">Non accessible PMR</span>
+          {% endif %}
+        </td>
+      {% elif entity.slug == "resources" %}
+        <td>{{ object.location }}</td>
+        <td>
+          {% if object.quantity %}<span class="data">{{ object.quantity }}</span>
+          {% else %}<span class="operations-status operations-status--warning">Épuisé</span>{% endif %}
+        </td>
+        <td class="data">{{ object.unit_cost|floatformat:2 }}</td>
+      {% else %}
+        <td class="data">{{ object.quantity }}</td>
+        <td class="operations-period">
+          <time datetime="{{ object.start_time|date:'c' }}">{{ object.start_time|date:"d/m/Y H:i" }}</time>
+          <span>au <time datetime="{{ object.end_time|date:'c' }}">{{ object.end_time|date:"d/m/Y H:i" }}</time></span>
+        </td>
+        <td>{% include "resources_operations/components/allocation_status.html" %}</td>
+      {% endif %}
+      <td><a href="{% url 'resources_operations:entity_update' entity.slug object.pk %}"
+             aria-label="Modifier {{ object }}">Modifier</a></td>
+    </tr>
+  {% empty %}
+    <tr>
+      <td class="empty-cell" colspan="5">
+        {% if search or selected_filter %}
+          {% include "core/components/empty_state.html" with title="Aucun résultat" text="Modifiez ou réinitialisez les critères de recherche." %}
+        {% else %}
+          {% include "core/components/empty_state.html" with title="Aucune fiche enregistrée" text="Utilisez le bouton en haut de la page pour ajouter une fiche." %}
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+{% endblock %}
+
+{% block after_table %}
+  {% if results_page.has_other_pages %}
+    <nav class="pagination operations-pagination" aria-label="Pagination">
+      {% if results_page.has_previous %}
+        <a class="btn btn-secondary" href="{% querystring page=results_page.previous_page_number %}">Précédent</a>
+      {% endif %}
+      <span class="data">{{ results_page.number }} / {{ results_page.paginator.num_pages }}</span>
+      {% if results_page.has_next %}
+        <a class="btn btn-secondary" href="{% querystring page=results_page.next_page_number %}">Suivant</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

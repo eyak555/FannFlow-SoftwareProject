@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "resources_operations/components/navigation.html" %}
+  <header class="hero operations-hero">
+    <h1>{{ page_title }}</h1>
+    <p class="lede">{{ module.summary }}</p>
+  </header>
+
+  <section class="operations-overview" aria-label="Sections du module">
+    {% for item in overview %}
+      <article class="entity-card operations-card">
+        <div class="operations-card__heading">
+          <h2>{{ item.entity.plural }}</h2>
+          <span class="operations-count data" aria-label="{{ item.count }} fiche{{ item.count|pluralize }}">{{ item.count }}</span>
+        </div>
+        <p>{{ item.entity.description }}</p>
+        <div class="entity-actions">
+          <a class="btn btn-secondary" href="{% url 'resources_operations:entity_list' item.entity.slug %}">Consulter</a>
+          <a class="btn btn-primary" href="{% url 'resources_operations:entity_create' item.entity.slug %}">{{ item.entity.create_label }}</a>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+{% endblock %}

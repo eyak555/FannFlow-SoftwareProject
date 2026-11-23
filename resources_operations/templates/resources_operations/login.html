@@ -1,0 +1,14 @@
+{% extends "core/layouts/form.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block form_fields %}
+  {{ block.super }}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+{% endblock %}
+
+{% block form_actions %}
+  <button class="btn btn-primary" type="submit">Se connecter</button>
+  <a class="btn btn-secondary" href="{% url 'core:home' %}">Retour à l’accueil</a>
+{% endblock %}

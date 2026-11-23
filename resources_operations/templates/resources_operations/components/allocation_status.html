@@ -1,0 +1,7 @@
+{% if object.end_time <= now %}
+  <span class="operations-status">Terminée</span>
+{% elif object.start_time <= now %}
+  <span class="operations-status operations-status--positive">En cours</span>
+{% else %}
+  <span class="operations-status operations-status--upcoming">À venir</span>
+{% endif %}
