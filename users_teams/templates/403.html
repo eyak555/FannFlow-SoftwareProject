@@ -1,0 +1,10 @@
+{% extends "core/base.html" %}
+
+{% block title %}Accès refusé — FannFlow{% endblock %}
+
+{% block content %}
+  <section class="empty-page">
+    {% include "core/components/empty_state.html" with title="Accès refusé" text="Vous n’avez pas les droits nécessaires pour consulter cette page." %}
+    <a class="btn btn-primary" href="{% url 'core:home' %}">Retour à l’accueil</a>
+  </section>
+{% endblock %}

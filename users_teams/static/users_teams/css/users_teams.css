@@ -1,0 +1,29 @@
+/* Module 1 — compléments de mise en page, construits sur les variables du socle. */
+.auth-links { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); font-size: .875rem; }
+.auth-links p { margin: 6px 0; }
+
+.list-filters { display: grid; grid-template-columns: minmax(200px, 2fr) repeat(3, minmax(140px, 1fr)) auto; gap: 12px; align-items: end; margin-bottom: 16px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.list-filters .field { margin: 0; }
+.list-filters .form-actions { flex-wrap: nowrap; }
+
+.badge { display: inline-block; border-radius: 999px; padding: 3px 10px; background: #EEF4F6; color: var(--blue-secondary); font-size: .75rem; font-weight: 500; white-space: nowrap; }
+.badge--admin { background: #EAF1F7; color: var(--blue); }
+.badge--team { background: #FFF3DC; color: #B97817; }
+.badge--actif { background: #EAF4EC; color: var(--green); }
+.badge--inactif { background: #FBECEC; color: var(--red); }
+
+.user-cell { display: flex; align-items: center; gap: 10px; }
+.avatar { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; overflow: hidden; border-radius: 50%; background: var(--blue); color: var(--white); font: 700 .8125rem var(--font-heading); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar--large { width: 96px; height: 96px; font-size: 1.75rem; }
+.row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.row-actions .btn { min-height: 32px; padding: 4px 10px; font-size: .8125rem; }
+.data-table th a { color: var(--blue); text-decoration: none; }
+.data-table th a:hover { text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .list-filters { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .list-filters { grid-template-columns: 1fr; }
+}

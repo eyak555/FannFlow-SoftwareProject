@@ -1,0 +1,106 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'users_teams/css/users_teams.css' %}">{% endblock %}
+
+{% block content %}
+  <div class="module-workspace">
+    <aside class="module-sidebar" aria-label="Navigation de l’espace de gestion">
+      <a class="module-sidebar-home" href="{% url 'core:home' %}">
+        <span aria-hidden="true">←</span> Retour au site
+      </a>
+      <div class="module-sidebar-heading">
+        <span>{{ user.get_role_display }}{% if user.business_role %} · {{ user.get_business_role_display }}{% endif %}</span>
+        <strong>{{ module.title }}</strong>
+      </div>
+      <nav class="module-side-nav">
+        <a class="is-active" href="{% url 'users_teams:home' %}">
+          <span aria-hidden="true">⌂</span> Vue générale
+        </a>
+        {% if user.is_administrator %}
+          <a href="{% url 'users_teams:user_list' %}">
+            <span aria-hidden="true">•</span> Utilisateurs
+          </a>
+          <a href="{% url 'users_teams:user_create' %}">
+            <span aria-hidden="true">+</span> Nouvel utilisateur
+          </a>
+        {% endif %}
+      </nav>
+    </aside>
+
+    <div class="module-workspace-content">
+      <header class="module-page-header">
+        <div>
+          <p class="eyebrow">Espace de gestion</p>
+          <h1>Bonjour {{ user.first_name }}</h1>
+          {% if page_intro %}<p class="lede">{{ page_intro }}</p>{% endif %}
+        </div>
+      </header>
+
+      <section class="module-stat-grid" aria-label="Résumé des comptes">
+        <article class="module-stat">
+          <span>Utilisateurs</span>
+          <strong>{{ stats.total }}</strong>
+          <small>dont {{ stats.active }} actif(s)</small>
+        </article>
+        <article class="module-stat">
+          <span>Administrateurs</span>
+          <strong>{{ stats.admins }}</strong>
+          <small>accès complet</small>
+        </article>
+        <article class="module-stat module-stat--accent">
+          <span>Équipe d’organisation</span>
+          <strong>{{ stats.team }}</strong>
+          <small>directeurs et organisateurs</small>
+        </article>
+      </section>
+
+      <section class="module-content-grid">
+        <div class="module-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Gestion</p>
+              <h2>Fonctionnalités disponibles</h2>
+            </div>
+          </div>
+          <div class="module-entity-grid">
+            {% if user.is_administrator %}
+              <article class="module-entity-card">
+                <span class="entity-index" aria-hidden="true">01</span>
+                <div class="entity-card-content">
+                  <h3>Utilisateurs</h3>
+                  <p>Créer, consulter, modifier et supprimer les comptes (participants, administrateurs, directeurs, organisateurs).</p>
+                </div>
+                <div class="entity-actions">
+                  <a class="btn btn-secondary" href="{% url 'users_teams:user_list' %}">Ouvrir</a>
+                  <a class="btn btn-primary" href="{% url 'users_teams:user_create' %}">Ajouter</a>
+                </div>
+              </article>
+            {% endif %}
+            <article class="module-entity-card">
+              <span class="entity-index" aria-hidden="true">{% if user.is_administrator %}02{% else %}01{% endif %}</span>
+              <div class="entity-card-content">
+                <h3>Organisateurs d’événements</h3>
+                <p>Affectation des organisateurs aux événements : disponible lorsque le Module 2 (Events &amp; Program) fournira le modèle Événement.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <aside class="module-panel module-info-panel" aria-label="Mon compte">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Mon compte</p>
+              <h2>{{ user.get_full_name }}</h2>
+            </div>
+          </div>
+          <div class="module-info-state">
+            {% include "users_teams/components/avatar.html" with person=user large=True %}
+            <p>{{ user.email }}</p>
+            <p>Dernière connexion : {{ user.last_login|date:"d/m/Y H:i"|default:"—" }}</p>
+          </div>
+        </aside>
+      </section>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'users_teams/css/users_teams.css' %}">{% endblock %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Users & Organization Teams</p>
+      <h1>Connexion</h1>
+      <p class="lede">Connectez-vous avec votre email et votre mot de passe.</p>
+    </div>
+  </header>
+
+  <form class="ff-form" method="post" novalidate>
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    {{ form.non_field_errors }}
+
+    <div class="field{% if form.username.errors %} field--error{% endif %}">
+      <label for="{{ form.username.id_for_label }}">Email</label>
+      {{ form.username }}
+      {{ form.username.errors }}
+    </div>
+    <div class="field{% if form.password.errors %} field--error{% endif %}">
+      <label for="{{ form.password.id_for_label }}">Mot de passe</label>
+      {{ form.password }}
+      {{ form.password.errors }}
+      <a class="text-link" href="{% url 'users_teams:password_forgotten' %}">Mot de passe oublié ?</a>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Se connecter</button>
+      <button class="btn btn-secondary" type="button" disabled title="Disponible dans un prochain sprint">Continuer avec Google</button>
+    </div>
+
+    <div class="auth-links">
+      <p>Pas encore de compte participant ? <a class="text-link" href="{% url 'users_teams:register' %}">Créer un compte</a></p>
+      <p><a class="text-link" href="{% url 'core:home' %}">← Retour au site</a></p>
+    </div>
+  </form>
+{% endblock %}

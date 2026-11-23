@@ -4,7 +4,7 @@ MODULE = {
     "app_name": "users_teams",
     "summary": "Utilisateurs, profils participants et équipes d’organisation.",
     "entities": [
-        {"slug": "users", "name": "Utilisateur", "fields": ["Id_user", "First_name", "Last_name", "Email", "Password_hash", "Phone", "Address", "Role", "Profile_picture"]},
+        {"slug": "users", "name": "Utilisateur", "fields": ["Id_user", "First_name", "Last_name", "Email", "Password_hash", "Phone", "Birth_date", "Profile_picture", "Face_encoding", "Role", "Business_role", "Status", "Created_at", "Last_login"]},
         {"slug": "participant-profiles", "name": "Profil participant", "fields": ["Id_profile", "Id_user", "Profession", "Organization", "Bio", "Interests", "Languages", "Experience"]},
         {"slug": "organization-teams", "name": "Équipe d’organisation", "fields": ["Id_team", "Name", "Team_type", "Description", "Leader_id"]},
         {"slug": "team-members", "name": "Membre d’équipe", "fields": ["Id_team_member", "Id_team", "Id_user", "Role_in_team"]},

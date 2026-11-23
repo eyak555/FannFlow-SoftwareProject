@@ -27,10 +27,30 @@
           {% endfor %}
         </ul>
       </nav>
-      <a class="header-profile" href="{% url 'users_teams:login' %}" aria-label="Se connecter">
-        <span>Connexion</span>
-        <strong aria-hidden="true">A</strong>
-      </a>
+      {% if user.is_authenticated %}
+        <div class="header-session">
+          {% if user.has_management_access %}
+            <a class="header-profile" href="{% url 'users_teams:home' %}" title="{{ user.email }}" aria-label="Espace de gestion de {{ user.get_full_name }}">
+              <span>Espace de gestion</span>
+              <strong aria-hidden="true">{{ user.initials }}</strong>
+            </a>
+          {% else %}
+            <span class="header-profile" title="{{ user.email }}">
+              <span>{{ user.get_full_name }}</span>
+              <strong aria-hidden="true">{{ user.initials }}</strong>
+            </span>
+          {% endif %}
+          <form method="post" action="{% url 'users_teams:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary">Déconnexion</button>
+          </form>
+        </div>
+      {% else %}
+        <a class="header-profile" href="{% url 'users_teams:login' %}" aria-label="Se connecter">
+          <span>Connexion</span>
+          <strong aria-hidden="true">A</strong>
+        </a>
+      {% endif %}
     </div>
   </div>
 </header>

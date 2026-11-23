@@ -1,0 +1,9 @@
+{% extends "core/layouts/confirm_delete.html" %}
+
+{% block delete_message %}
+  <p>
+    Confirmer la suppression définitive de <strong>{{ managed_user }}</strong>
+    (<span class="data">{{ managed_user.email }}</span>) ?
+  </p>
+  <p class="hint">Cette action est irréversible.</p>
+{% endblock %}
