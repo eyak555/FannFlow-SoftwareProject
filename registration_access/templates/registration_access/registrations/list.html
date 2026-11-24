@@ -1,0 +1,147 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<header class="page-header registration-heading">
+  <div>
+    <p class="eyebrow">Gestion des inscriptions</p>
+    <h1>Inscriptions</h1>
+    <p class="lede">Consultez et gérez les inscriptions aux événements.</p>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn btn-primary" href="{% url 'registration_access:entity_create' 'registrations' %}">
+      <span aria-hidden="true">+</span> Ajouter une inscription
+    </a>
+  </div>
+</header>
+
+<section class="registration-stats" aria-label="Résumé des inscriptions">
+  <article class="registration-stat registration-stat--total">
+    <span class="registration-stat__icon" aria-hidden="true">◎</span>
+    <div><p>Total des inscriptions</p><strong>{{ registration_stats.total }}</strong></div>
+  </article>
+  <article class="registration-stat registration-stat--confirmed">
+    <span class="registration-stat__icon" aria-hidden="true">✓</span>
+    <div><p>Confirmées</p><strong>{{ registration_stats.confirmed }}</strong></div>
+  </article>
+  <article class="registration-stat registration-stat--pending">
+    <span class="registration-stat__icon" aria-hidden="true">◷</span>
+    <div><p>En attente</p><strong>{{ registration_stats.pending }}</strong></div>
+  </article>
+  <article class="registration-stat registration-stat--paid">
+    <span class="registration-stat__icon" aria-hidden="true">€</span>
+    <div><p>Paiements reçus</p><strong>{{ registration_stats.paid }}</strong></div>
+  </article>
+</section>
+
+<section class="registration-table-panel" aria-label="Liste des inscriptions">
+  <form class="registration-filters" method="get">
+    <label class="registration-search">
+      <span class="visually-hidden">Rechercher une inscription</span>
+      <span aria-hidden="true">⌕</span>
+      <input type="search" name="q" value="{{ search_query }}" placeholder="Rechercher un participant, un billet…">
+    </label>
+    <label class="registration-filter">
+      <span class="visually-hidden">Filtrer par statut</span>
+      <select name="status">
+        <option value="">Tous les statuts</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="registration-filter">
+      <span class="visually-hidden">Filtrer par paiement</span>
+      <select name="payment">
+        <option value="">Tous les paiements</option>
+        {% for value, label in payment_choices %}
+          <option value="{{ value }}" {% if selected_payment == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="btn btn-secondary registration-filter-submit" type="submit">Filtrer</button>
+    {% if search_query or selected_status or selected_payment %}
+      <a class="registration-reset" href="{% url 'registration_access:entity_list' 'registrations' %}">Réinitialiser</a>
+    {% endif %}
+  </form>
+
+  <div class="registration-table-heading">
+    <div>
+      <h2>Participants</h2>
+      <p>{{ registrations|length }} résultat{{ registrations|length|pluralize:"s" }}</p>
+    </div>
+    {% if search_query or selected_status or selected_payment %}
+      <span class="filter-active">Filtres actifs</span>
+    {% endif %}
+  </div>
+
+  <div class="table-wrap registration-table-wrap">
+    <table class="data-table registration-table">
+      <thead>
+        <tr>
+          <th scope="col">Participant</th>
+          <th scope="col">Événement</th>
+          <th scope="col">Billet</th>
+          <th scope="col">Statut</th>
+          <th scope="col">Paiement</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for registration in registrations %}
+          <tr>
+            <td>
+              <div class="participant-cell">
+                <span class="participant-avatar" aria-hidden="true">{{ registration.user.username|slice:":1"|upper }}</span>
+                <span>
+                  <strong>{{ registration.user.get_full_name|default:registration.user.username }}</strong>
+                  {% if registration.user.email %}<small>{{ registration.user.email }}</small>{% endif %}
+                </span>
+              </div>
+            </td>
+            <td><span class="event-reference">Événement {{ registration.event_id }}</span></td>
+            <td>{{ registration.ticket_type }}</td>
+            <td>
+              {% if registration.status == "confirmed" %}
+                <span class="status-pill status-pill--success"><span></span>{{ registration.get_status_display }}</span>
+              {% elif registration.status == "pending" %}
+                <span class="status-pill status-pill--pending"><span></span>{{ registration.get_status_display }}</span>
+              {% else %}
+                <span class="status-pill status-pill--danger"><span></span>{{ registration.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if registration.payment_status == "paid" %}
+                <span class="status-pill status-pill--success"><span></span>{{ registration.get_payment_status_display }}</span>
+              {% elif registration.payment_status == "pending" %}
+                <span class="status-pill status-pill--pending"><span></span>{{ registration.get_payment_status_display }}</span>
+              {% else %}
+                <span class="status-pill status-pill--neutral"><span></span>{{ registration.get_payment_status_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="table-actions">
+                <a class="table-action table-action--view" href="{% url 'registration_access:entity_detail' 'registrations' registration.pk %}">Voir</a>
+                <a class="table-action table-action--edit" href="{% url 'registration_access:entity_update' 'registrations' registration.pk %}">Modifier</a>
+                <a class="table-action table-action--delete" href="{% url 'registration_access:entity_delete' 'registrations' registration.pk %}" aria-label="Supprimer l’inscription de {{ registration.user }}">Supprimer</a>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td class="empty-cell" colspan="6">
+              <div class="registration-empty">
+                <span aria-hidden="true">◎</span>
+                <h2>Aucun résultat</h2>
+                <p>{% if search_query or selected_status or selected_payment %}Essayez de modifier les filtres ou la recherche.{% else %}Les inscriptions apparaîtront ici dès leur création.{% endif %}</p>
+                {% if search_query or selected_status or selected_payment %}
+                  <a class="text-link" href="{% url 'registration_access:entity_list' 'registrations' %}">Effacer les filtres</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

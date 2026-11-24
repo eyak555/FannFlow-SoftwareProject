@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'registration_access/css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+  <section class="access-hero">
+    <div class="access-hero__copy">
+      <p class="eyebrow">Registration &amp; Access</p>
+      <h1>De l’inscription à l’entrée, chaque étape en harmonie.</h1>
+      <p>Un espace clair pour accueillir les participants, suivre les billets et organiser les accès à vos événements culturels.</p>
+      <div class="access-hero__actions">
+        <a class="btn btn-primary" href="{% url 'registration_access:entity_list' 'registrations' %}">Voir les inscriptions</a>
+        <a class="btn btn-secondary" href="{% url 'registration_access:entity_create' 'registrations' %}">Ajouter un participant</a>
+      </div>
+    </div>
+    <div class="access-hero__art" aria-hidden="true">
+      <span class="art-orbit art-orbit--outer"></span>
+      <span class="art-orbit art-orbit--inner"></span>
+      <div class="art-ticket">
+        <span class="art-ticket__spark">✳</span>
+        <span class="art-ticket__word">FANN<br>FLOW</span>
+        <span class="art-ticket__line"></span>
+        <span class="art-ticket__dots">•••• ••••</span>
+      </div>
+      <span class="art-star">✦</span>
+    </div>
+  </section>
+
+  <section class="access-areas" aria-labelledby="access-areas-title">
+    <header class="section-heading access-section-heading">
+      <div>
+        <p class="eyebrow">Un parcours fluide</p>
+        <h2 id="access-areas-title">Inscriptions et accueil des participants</h2>
+        <p class="access-section-intro">Choisissez une activité pour consulter les éléments existants ou en ajouter de nouveaux.</p>
+      </div>
+    </header>
+
+    <div class="access-area-grid">
+      {% for area in access_areas %}
+        <article class="access-area-card">
+          <div class="access-area-card__top">
+            <span class="access-area-icon access-area-icon--{{ area.icon }}" aria-hidden="true">
+              {% if area.icon == "registration" %}◎
+              {% elif area.icon == "ticket" %}◇
+              {% elif area.icon == "attendance" %}✓
+              {% else %}⌖{% endif %}
+            </span>
+            <span class="access-area-arrow" aria-hidden="true">↗</span>
+          </div>
+          <h3>{{ area.title }}</h3>
+          <p>{{ area.description }}</p>
+          <div class="access-area-card__actions">
+            <a href="{% url 'registration_access:entity_list' area.slug %}">Consulter</a>
+            <a href="{% url 'registration_access:entity_create' area.slug %}">Ajouter <span aria-hidden="true">+</span></a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+{% endblock %}

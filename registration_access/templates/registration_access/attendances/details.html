@@ -1,0 +1,14 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<section class="page-card">
+  <header class="page-heading"><div><p class="eyebrow">Fiche présence</p><h1>{{ attendance }}</h1><p class="page-intro">Informations de passage du participant.</p></div>{% if user.is_authenticated %}<a class="btn btn-primary" href="{% url 'registration_access:entity_update' 'attendances' attendance.pk %}">Modifier la présence</a>{% endif %}</header>
+  <dl class="detail-grid">
+    <div class="detail-item"><dt class="detail-label">Billet</dt><dd class="detail-value">{{ attendance.ticket }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Entrée</dt><dd class="detail-value">{{ attendance.check_in|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Sortie</dt><dd class="detail-value">{{ attendance.check_out|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Point d’accès</dt><dd class="detail-value">{{ attendance.gate }}</dd></div>
+  </dl>
+  <a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'attendances' %}">Retour aux présences</a>
+</section>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<header class="page-header registration-heading">
+  <div><p class="eyebrow">Suivi des présences</p><h1>Présences</h1><p class="lede">Consultez les entrées et sorties enregistrées.</p></div>
+  <div class="page-header__actions"><a class="btn btn-primary" href="{% url 'registration_access:entity_create' 'attendances' %}"><span aria-hidden="true">+</span> Enregistrer une présence</a></div>
+</header>
+
+<section class="registration-stats" aria-label="Résumé des présences">
+  <article class="registration-stat registration-stat--total"><span class="registration-stat__icon" aria-hidden="true">◎</span><div><p>Total des passages</p><strong>{{ attendance_stats.total }}</strong></div></article>
+  <article class="registration-stat registration-stat--confirmed"><span class="registration-stat__icon" aria-hidden="true">✓</span><div><p>Sur place</p><strong>{{ attendance_stats.on_site }}</strong></div></article>
+  <article class="registration-stat registration-stat--paid"><span class="registration-stat__icon" aria-hidden="true">↗</span><div><p>Sortis</p><strong>{{ attendance_stats.checked_out }}</strong></div></article>
+  <article class="registration-stat registration-stat--pending"><span class="registration-stat__icon" aria-hidden="true">◷</span><div><p>Non pointés</p><strong>{{ attendance_stats.not_checked }}</strong></div></article>
+</section>
+
+<section class="registration-table-panel" aria-label="Liste des présences">
+  <form class="registration-filters" method="get">
+    <label class="registration-search"><span class="visually-hidden">Rechercher une présence</span><span aria-hidden="true">⌕</span><input type="search" name="q" value="{{ search_query }}" placeholder="Billet, participant ou point d’accès…"></label>
+    <label class="registration-filter"><span class="visually-hidden">Filtrer par état</span><select name="state"><option value="">Tous les états</option><option value="not_checked" {% if selected_state == "not_checked" %}selected{% endif %}>Non pointées</option><option value="checked_in" {% if selected_state == "checked_in" %}selected{% endif %}>Sur place</option><option value="checked_out" {% if selected_state == "checked_out" %}selected{% endif %}>Sorties</option></select></label>
+    <button class="btn btn-secondary registration-filter-submit" type="submit">Filtrer</button>
+    {% if search_query or selected_state %}<a class="registration-reset" href="{% url 'registration_access:entity_list' 'attendances' %}">Réinitialiser</a>{% endif %}
+  </form>
+
+  <div class="registration-table-heading"><div><h2>Passages enregistrés</h2><p>{{ attendances|length }} résultat{{ attendances|length|pluralize:"s" }}</p></div>{% if search_query or selected_state %}<span class="filter-active">Filtres actifs</span>{% endif %}</div>
+  <div class="table-wrap registration-table-wrap">
+    <table class="data-table registration-table">
+      <thead><tr><th>Billet</th><th>Participant</th><th>Entrée</th><th>Sortie</th><th>Point d’accès</th><th>État</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody>{% for attendance in attendances %}
+        <tr>
+          <td><span class="ticket-code">{{ attendance.ticket.qr_code }}</span></td>
+          <td><div class="participant-cell"><span class="participant-avatar" aria-hidden="true">{{ attendance.ticket.registration.user.username|slice:":1"|upper }}</span><span><strong>{{ attendance.ticket.registration.user.get_full_name|default:attendance.ticket.registration.user.username }}</strong><small>Événement {{ attendance.ticket.registration.event_id }}</small></span></div></td>
+          <td>{{ attendance.check_in|date:"d/m/Y H:i"|default:"—" }}</td><td>{{ attendance.check_out|date:"d/m/Y H:i"|default:"—" }}</td><td>{{ attendance.gate }}</td>
+          <td>{% if attendance.check_out %}<span class="status-pill status-pill--neutral"><span></span>Sortie effectuée</span>{% elif attendance.check_in %}<span class="status-pill status-pill--success"><span></span>Sur place</span>{% else %}<span class="status-pill status-pill--pending"><span></span>Non pointée</span>{% endif %}</td>
+          <td><div class="table-actions"><a class="table-action table-action--view" href="{% url 'registration_access:entity_detail' 'attendances' attendance.pk %}">Voir</a><a class="table-action table-action--edit" href="{% url 'registration_access:entity_update' 'attendances' attendance.pk %}">Modifier</a><a class="table-action table-action--delete" href="{% url 'registration_access:entity_delete' 'attendances' attendance.pk %}">Supprimer</a></div></td>
+        </tr>
+      {% empty %}<tr><td class="empty-cell" colspan="7"><div class="registration-empty"><span aria-hidden="true">◎</span><h2>Aucun résultat</h2><p>{% if search_query or selected_state %}Modifiez les filtres pour élargir la recherche.{% else %}Les présences apparaîtront ici lorsqu’un passage sera enregistré.{% endif %}</p></div></td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
