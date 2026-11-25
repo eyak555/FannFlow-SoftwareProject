@@ -92,9 +92,9 @@
           <tr>
             <td>
               <div class="participant-cell">
-                <span class="participant-avatar" aria-hidden="true">{{ registration.user.username|slice:":1"|upper }}</span>
+                <span class="participant-avatar" aria-hidden="true">{{ registration.user.initials }}</span>
                 <span>
-                  <strong>{{ registration.user.get_full_name|default:registration.user.username }}</strong>
+                  <strong>{{ registration.user.get_full_name|default:registration.user.email }}</strong>
                   {% if registration.user.email %}<small>{{ registration.user.email }}</small>{% endif %}
                 </span>
               </div>

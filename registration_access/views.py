@@ -1,27 +1,42 @@
+from decimal import Decimal
+
 from django.shortcuts import render
 from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView, View
 
+from users_teams.permissions import AdministratorRequiredMixin
 from .entities import MODULE
-from .forms import AccessPointForm, AttendanceForm, CheckInForm, RegistrationForm, TicketForm
+from .forms import (
+    AccessPointForm,
+    AttendanceForm,
+    CheckInForm,
+    FreeTicketConfirmationForm,
+    ParticipantRegistrationForm,
+    PrototypePaymentForm,
+    RegistrationForm,
+    TicketForm,
+)
 from .models import AccessPoint, Attendance, Registration, Ticket
 from .qr_codes import qr_code_data_uri
 from .services import (
     create_registration_ticket,
     check_in_ticket,
     check_out_attendance,
+    confirm_participant_registration,
     save_attendance,
     sync_registration_tickets,
     ticket_is_ready_for_qr,
 )
 
 
-class RegistrationAccessListView(ListView):
+class PaginationOptionsMixin:
     page_size_options = (10, 25, 50, 75, 100)
     default_page_size = 25
 
@@ -50,6 +65,10 @@ class RegistrationAccessListView(ListView):
         return context
 
 
+class RegistrationAccessListView(AdministratorRequiredMixin, PaginationOptionsMixin, ListView):
+    pass
+
+
 class RegistrationListView(RegistrationAccessListView):
     model = Registration
     template_name = "registration_access/registrations/list.html"
@@ -64,8 +83,7 @@ class RegistrationListView(RegistrationAccessListView):
 
         if self.search_query:
             search_filter = (
-                Q(user__username__icontains=self.search_query)
-                | Q(user__first_name__icontains=self.search_query)
+                Q(user__first_name__icontains=self.search_query)
                 | Q(user__last_name__icontains=self.search_query)
                 | Q(user__email__icontains=self.search_query)
                 | Q(ticket_type__icontains=self.search_query)
@@ -111,13 +129,13 @@ class RegistrationListView(RegistrationAccessListView):
         return context
 
 
-class RegistrationDetailView(DetailView):
+class RegistrationDetailView(AdministratorRequiredMixin, DetailView):
     model = Registration
     template_name = "registration_access/registrations/details.html"
     context_object_name = "registration"
 
 
-class RegistrationCreateView(CreateView):
+class RegistrationCreateView(AdministratorRequiredMixin, CreateView):
     model = Registration
     template_name = "registration_access/registrations/forms.html"
     form_class = RegistrationForm
@@ -130,7 +148,7 @@ class RegistrationCreateView(CreateView):
         return response
 
 
-class RegistrationUpdateView(UpdateView):
+class RegistrationUpdateView(AdministratorRequiredMixin, UpdateView):
     model = Registration
     template_name = "registration_access/registrations/forms.html"
     form_class = RegistrationForm
@@ -143,7 +161,7 @@ class RegistrationUpdateView(UpdateView):
         return response
 
 
-class RegistrationDeleteView(DeleteView):
+class RegistrationDeleteView(AdministratorRequiredMixin, DeleteView):
     model = Registration
     template_name = "registration_access/registrations/delete_confirmation.html"
     context_object_name = "registration"
@@ -157,6 +175,154 @@ class RegistrationDeleteView(DeleteView):
             )
             return HttpResponseRedirect(self.get_success_url())
         return super().form_valid(form)
+
+
+class ParticipantRegistrationListView(LoginRequiredMixin, PaginationOptionsMixin, ListView):
+    model = Registration
+    template_name = "registration_access/participants/registrations.html"
+    context_object_name = "registrations"
+
+    def get_queryset(self):
+        return Registration.objects.filter(user=self.request.user).prefetch_related("tickets")
+
+
+class ParticipantRegistrationCreateView(LoginRequiredMixin, CreateView):
+    model = Registration
+    template_name = "registration_access/participants/registration_form.html"
+    form_class = ParticipantRegistrationForm
+    success_url = reverse_lazy("registration_access:my_registrations")
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.status = Registration.STATUS_PENDING
+        form.instance.payment_status = Registration.PAYMENT_PENDING
+        with transaction.atomic():
+            response = super().form_valid(form)
+            create_registration_ticket(self.object)
+        messages.success(
+            self.request,
+            "Votre demande est enregistrée. Retrouvez votre billet pour le confirmer gratuitement ou simuler le paiement ; aucun débit réel n’est effectué.",
+        )
+        return response
+
+
+class ParticipantRegistrationCancelView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        registration = get_object_or_404(
+            Registration,
+            pk=pk,
+            user=request.user,
+        )
+        can_cancel = (
+            registration.status == Registration.STATUS_PENDING
+            and registration.payment_status == Registration.PAYMENT_PENDING
+            and not registration.tickets.filter(attendances__isnull=False).exists()
+        )
+        if not can_cancel:
+            messages.error(
+                request,
+                "Seule une inscription en attente de paiement peut être annulée ici. Contactez l’administration pour toute autre demande.",
+            )
+        else:
+            registration.status = Registration.STATUS_CANCELLED
+            registration.save(update_fields=["status"])
+            sync_registration_tickets(registration)
+            messages.success(request, "Votre inscription a été annulée.")
+        return redirect("registration_access:my_registrations")
+
+
+class ParticipantRegistrationConfirmView(LoginRequiredMixin, FormView):
+    template_name = "registration_access/participants/payment_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.registration = get_object_or_404(
+            Registration.objects.prefetch_related("tickets"),
+            pk=kwargs["pk"],
+            user=request.user,
+        )
+        self.tickets = list(self.registration.tickets.all().order_by("pk"))
+        if (
+            self.registration.status != Registration.STATUS_PENDING
+            or self.registration.payment_status != Registration.PAYMENT_PENDING
+        ):
+            messages.info(request, "Cette inscription a déjà été traitée.")
+            return redirect("registration_access:my_tickets")
+        if not self.tickets or any(
+            ticket.status != Ticket.STATUS_PENDING for ticket in self.tickets
+        ):
+            messages.error(request, "Aucun billet en attente ne peut être confirmé.")
+            return redirect("registration_access:my_tickets")
+        self.total_amount = sum(
+            (ticket.price for ticket in self.tickets),
+            Decimal("0.00"),
+        )
+        self.payment_required = self.total_amount > Decimal("0.00")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_class(self):
+        if self.payment_required:
+            return PrototypePaymentForm
+        return FreeTicketConfirmationForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(
+            registration=self.registration,
+            tickets=self.tickets,
+            total_amount=self.total_amount,
+            payment_required=self.payment_required,
+        )
+        return context
+
+    def form_valid(self, form):
+        try:
+            registration = confirm_participant_registration(
+                self.registration.pk,
+                self.request.user,
+            )
+        except Registration.DoesNotExist as error:
+            raise Http404 from error
+        except ValidationError as error:
+            form.add_error(None, error)
+            return self.form_invalid(form)
+        else:
+            if registration.payment_status == Registration.PAYMENT_PAID:
+                messages.success(
+                    self.request,
+                    "Votre paiement de test est confirmé. Votre billet est activé.",
+                )
+            else:
+                messages.success(self.request, "Votre billet gratuit est confirmé.")
+        return redirect("registration_access:my_tickets")
+
+
+class ParticipantTicketListView(LoginRequiredMixin, PaginationOptionsMixin, ListView):
+    model = Ticket
+    template_name = "registration_access/participants/tickets.html"
+    context_object_name = "tickets"
+
+    def get_queryset(self):
+        return Ticket.objects.filter(
+            registration__user=self.request.user
+        ).select_related("registration")
+
+
+class ParticipantTicketDetailView(LoginRequiredMixin, DetailView):
+    model = Ticket
+    template_name = "registration_access/tickets/details.html"
+    context_object_name = "ticket"
+
+    def get_queryset(self):
+        return Ticket.objects.filter(registration__user=self.request.user).select_related(
+            "registration",
+            "registration__user",
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if ticket_is_ready_for_qr(self.object):
+            context["qr_code_image"] = qr_code_data_uri(self.object.code)
+        return context
 
 
 class TicketListView(RegistrationAccessListView):
@@ -174,9 +340,9 @@ class TicketListView(RegistrationAccessListView):
         if self.search_query:
             search_filter = (
                 Q(code__icontains=self.search_query)
-                | Q(registration__user__username__icontains=self.search_query)
                 | Q(registration__user__first_name__icontains=self.search_query)
                 | Q(registration__user__last_name__icontains=self.search_query)
+                | Q(registration__user__email__icontains=self.search_query)
             )
             queryset = queryset.filter(search_filter)
 
@@ -209,7 +375,7 @@ class TicketListView(RegistrationAccessListView):
         return context
 
 
-class TicketDetailView(DetailView):
+class TicketDetailView(AdministratorRequiredMixin, DetailView):
     model = Ticket
     template_name = "registration_access/tickets/details.html"
     context_object_name = "ticket"
@@ -221,21 +387,21 @@ class TicketDetailView(DetailView):
         return context
 
 
-class TicketCreateView(CreateView):
+class TicketCreateView(AdministratorRequiredMixin, CreateView):
     model = Ticket
     template_name = "registration_access/tickets/forms.html"
     form_class = TicketForm
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "tickets"})
 
 
-class TicketUpdateView(UpdateView):
+class TicketUpdateView(AdministratorRequiredMixin, UpdateView):
     model = Ticket
     template_name = "registration_access/tickets/forms.html"
     form_class = TicketForm
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "tickets"})
 
 
-class TicketDeleteView(DeleteView):
+class TicketDeleteView(AdministratorRequiredMixin, DeleteView):
     model = Ticket
     template_name = "registration_access/tickets/delete_confirmation.html"
     context_object_name = "ticket"
@@ -271,9 +437,9 @@ class AttendanceListView(RegistrationAccessListView):
             search_filter = (
                 Q(access_point__name__icontains=self.search_query)
                 | Q(ticket__code__icontains=self.search_query)
-                | Q(ticket__registration__user__username__icontains=self.search_query)
                 | Q(ticket__registration__user__first_name__icontains=self.search_query)
                 | Q(ticket__registration__user__last_name__icontains=self.search_query)
+                | Q(ticket__registration__user__email__icontains=self.search_query)
             )
             queryset = queryset.filter(search_filter)
 
@@ -313,13 +479,13 @@ class AttendanceListView(RegistrationAccessListView):
         return context
 
 
-class AttendanceDetailView(DetailView):
+class AttendanceDetailView(AdministratorRequiredMixin, DetailView):
     model = Attendance
     template_name = "registration_access/attendances/details.html"
     context_object_name = "attendance"
 
 
-class AttendanceCreateView(CreateView):
+class AttendanceCreateView(AdministratorRequiredMixin, CreateView):
     model = Attendance
     template_name = "registration_access/attendances/forms.html"
     form_class = AttendanceForm
@@ -335,7 +501,7 @@ class AttendanceCreateView(CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
-class AttendanceUpdateView(UpdateView):
+class AttendanceUpdateView(AdministratorRequiredMixin, UpdateView):
     model = Attendance
     template_name = "registration_access/attendances/forms.html"
     form_class = AttendanceForm
@@ -351,7 +517,7 @@ class AttendanceUpdateView(UpdateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
-class AttendanceDeleteView(DeleteView):
+class AttendanceDeleteView(AdministratorRequiredMixin, DeleteView):
     model = Attendance
     template_name = "registration_access/attendances/delete_confirmation.html"
     context_object_name = "attendance"
@@ -367,7 +533,7 @@ class AttendanceDeleteView(DeleteView):
         return super().form_valid(form)
 
 
-class AttendanceCheckInView(FormView):
+class AttendanceCheckInView(AdministratorRequiredMixin, FormView):
     template_name = "registration_access/attendances/check_in.html"
     form_class = CheckInForm
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "attendances"})
@@ -393,7 +559,7 @@ class AttendanceCheckInView(FormView):
         )
 
 
-class AttendanceCheckOutView(View):
+class AttendanceCheckOutView(AdministratorRequiredMixin, View):
     def post(self, request, pk):
         try:
             attendance = check_out_attendance(pk)
@@ -454,7 +620,7 @@ class AccessPointListView(RegistrationAccessListView):
         return context
 
 
-class AccessPointDetailView(DetailView):
+class AccessPointDetailView(AdministratorRequiredMixin, DetailView):
     model = AccessPoint
     template_name = "registration_access/access_points/details.html"
     context_object_name = "access_point"
@@ -465,21 +631,21 @@ class AccessPointDetailView(DetailView):
         return context
 
 
-class AccessPointCreateView(CreateView):
+class AccessPointCreateView(AdministratorRequiredMixin, CreateView):
     model = AccessPoint
     template_name = "registration_access/access_points/forms.html"
     form_class = AccessPointForm
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "access-points"})
 
 
-class AccessPointUpdateView(UpdateView):
+class AccessPointUpdateView(AdministratorRequiredMixin, UpdateView):
     model = AccessPoint
     template_name = "registration_access/access_points/forms.html"
     form_class = AccessPointForm
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "access-points"})
 
 
-class AccessPointDeleteView(DeleteView):
+class AccessPointDeleteView(AdministratorRequiredMixin, DeleteView):
     model = AccessPoint
     template_name = "registration_access/access_points/delete_confirmation.html"
     context_object_name = "access_point"
@@ -496,6 +662,9 @@ class AccessPointDeleteView(DeleteView):
 
 
 def module_home(request):
+    is_administrator = (
+        request.user.is_authenticated and request.user.is_administrator
+    )
     access_areas = [
         {
             "slug": "registrations",
@@ -529,6 +698,7 @@ def module_home(request):
             "module": MODULE,
             "page_title": MODULE["title"],
             "page_intro": MODULE["summary"],
+            "is_administrator": is_administrator,
             "access_areas": access_areas,
         },
     )

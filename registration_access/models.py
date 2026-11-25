@@ -16,10 +16,12 @@ class Registration(models.Model):
 
     PAYMENT_PENDING = "pending"
     PAYMENT_PAID = "paid"
+    PAYMENT_NOT_REQUIRED = "not_required"
     PAYMENT_REFUNDED = "refunded"
     PAYMENT_CHOICES = [
         (PAYMENT_PENDING, "En attente"),
         (PAYMENT_PAID, "Payé"),
+        (PAYMENT_NOT_REQUIRED, "Sans paiement"),
         (PAYMENT_REFUNDED, "Remboursé"),
     ]
 

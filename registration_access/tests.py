@@ -5,16 +5,27 @@ from django.urls import reverse
 from django.utils import timezone
 import base64
 from datetime import timedelta
+from decimal import Decimal
 
 from .models import AccessPoint, Attendance, Registration, Ticket
 
 
 class RegistrationAccessCrudTests(TestCase):
     def setUp(self):
+        user_model = get_user_model()
         self.user = get_user_model().objects.create_user(
-            username="participant",
+            email="participant@example.test",
+            first_name="Ada",
+            last_name="Participant",
             password="test-password",
         )
+        self.admin = user_model.objects.create_superuser(
+            email="admin@example.test",
+            first_name="Admin",
+            last_name="FannFlow",
+            password="admin-password",
+        )
+        self.client.force_login(self.admin)
         self.registration = Registration.objects.create(
             user=self.user,
             event_id=12,
@@ -239,20 +250,20 @@ class RegistrationAccessCrudTests(TestCase):
         list_url = reverse("registration_access:entity_list", args=["registrations"])
         first_page = self.client.get(
             list_url,
-            {"q": "participant", "per_page": 10},
+            {"q": "participant@example.test", "per_page": 10},
         )
         self.assertEqual(first_page.context["paginator"].count, 21)
         self.assertEqual(first_page.context["paginator"].per_page, 10)
         self.assertEqual(first_page.context["page_obj"].number, 1)
         self.assertContains(
             first_page,
-            '?page=2&amp;q=participant&amp;per_page=10',
+            '?page=2&amp;q=participant%40example.test&amp;per_page=10',
         )
         self.assertContains(first_page, 'aria-label="Page suivante"')
 
         second_page = self.client.get(
             list_url,
-            {"q": "participant", "per_page": 10, "page": 2},
+            {"q": "participant@example.test", "per_page": 10, "page": 2},
         )
         self.assertEqual(second_page.context["page_obj"].number, 2)
         self.assertEqual(len(second_page.context["registrations"]), 10)
@@ -275,7 +286,7 @@ class RegistrationAccessCrudTests(TestCase):
             reverse("registration_access:entity_list", args=["registrations"]),
         )
         issued_ticket = Ticket.objects.get(registration=created)
-        self.assertEqual(issued_ticket.price, 0)
+        self.assertEqual(issued_ticket.price, Decimal("10.00"))
         self.assertEqual(issued_ticket.category, Ticket.CATEGORY_VIP)
         self.assertEqual(issued_ticket.status, Ticket.STATUS_AVAILABLE)
 
@@ -293,7 +304,7 @@ class RegistrationAccessCrudTests(TestCase):
         created.refresh_from_db()
         self.assertEqual(created.status, Registration.STATUS_CANCELLED)
         issued_ticket.refresh_from_db()
-        self.assertEqual(issued_ticket.status, Ticket.STATUS_CANCELLED)
+        self.assertEqual(issued_ticket.status, Ticket.STATUS_REFUND)
         self.assertEqual(response.status_code, 302)
 
         delete_url = reverse(
@@ -342,6 +353,17 @@ class RegistrationAccessCrudTests(TestCase):
             "ticket_type": Registration.TICKET_TYPE_VIP,
             "payment_status": Registration.PAYMENT_PENDING,
         })
+        self.assertEqual(response.status_code, 200)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.status, Ticket.STATUS_PENDING)
+
+        response = self.client.post(update_url, {
+            "user": self.user.pk,
+            "event_id": 46,
+            "status": Registration.STATUS_PENDING,
+            "ticket_type": Registration.TICKET_TYPE_VIP,
+            "payment_status": Registration.PAYMENT_PAID,
+        })
         self.assertEqual(response.status_code, 302)
         ticket.refresh_from_db()
         self.assertEqual(ticket.status, Ticket.STATUS_AVAILABLE)
@@ -353,7 +375,7 @@ class RegistrationAccessCrudTests(TestCase):
         )
         self.assertIn(b"<svg", qr_svg)
 
-    def test_paid_ticket_waits_for_payment_even_after_confirmation(self):
+    def test_admin_cannot_confirm_a_paid_registration_before_prototype_payment(self):
         registration = Registration.objects.create(
             user=self.user,
             event_id=47,
@@ -375,12 +397,17 @@ class RegistrationAccessCrudTests(TestCase):
             "ticket_type": Registration.TICKET_TYPE_STANDARD,
             "payment_status": Registration.PAYMENT_PENDING,
         }
-        self.client.post(update_url, payload)
+        response = self.client.post(update_url, payload)
+        self.assertEqual(response.status_code, 200)
         ticket.refresh_from_db()
         self.assertEqual(ticket.status, Ticket.STATUS_PENDING)
 
+        payload["status"] = Registration.STATUS_PENDING
         payload["payment_status"] = Registration.PAYMENT_PAID
-        self.client.post(update_url, payload)
+        response = self.client.post(update_url, payload)
+        self.assertEqual(response.status_code, 302)
+        registration.refresh_from_db()
+        self.assertEqual(registration.status, Registration.STATUS_CONFIRMED)
         ticket.refresh_from_db()
         self.assertEqual(ticket.status, Ticket.STATUS_AVAILABLE)
 
@@ -541,13 +568,228 @@ class RegistrationAccessCrudTests(TestCase):
                 self.assertEqual(response.status_code, 302)
                 self.assertFalse(model.objects.filter(pk=record.pk).exists())
 
-    def test_create_views_are_accessible_without_authentication(self):
+    def test_admin_crud_requires_an_administrator(self):
+        self.client.logout()
+        for entity in ("registrations", "tickets", "attendances", "access-points"):
+            with self.subTest(entity=entity):
+                response = self.client.get(
+                    reverse("registration_access:entity_create", args=[entity])
+                )
+                self.assertEqual(response.status_code, 302)
+
+        self.client.force_login(self.user)
+        for entity in ("registrations", "tickets", "attendances", "access-points"):
+            with self.subTest(entity=entity):
+                response = self.client.get(
+                    reverse("registration_access:entity_create", args=[entity])
+                )
+                self.assertEqual(response.status_code, 403)
+
+        self.client.force_login(self.admin)
         for entity in ("registrations", "tickets", "attendances", "access-points"):
             with self.subTest(entity=entity):
                 response = self.client.get(
                     reverse("registration_access:entity_create", args=[entity])
                 )
                 self.assertEqual(response.status_code, 200)
+
+    def test_participant_registration_uses_logged_in_user_and_pending_states(self):
+        another_user = get_user_model().objects.create_user(
+            email="other@example.test",
+            first_name="Other",
+            last_name="Participant",
+            password="test-password",
+        )
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("registration_access:registration_request"),
+            {
+                "event_id": 72,
+                "ticket_type": Registration.TICKET_TYPE_VIP,
+                "user": another_user.pk,
+                "status": Registration.STATUS_CONFIRMED,
+                "payment_status": Registration.PAYMENT_PAID,
+            },
+        )
+        self.assertRedirects(response, reverse("registration_access:my_registrations"))
+        registration = Registration.objects.get(event_id=72)
+        self.assertEqual(registration.user, self.user)
+        self.assertEqual(registration.status, Registration.STATUS_PENDING)
+        self.assertEqual(registration.payment_status, Registration.PAYMENT_PENDING)
+        ticket = Ticket.objects.get(registration=registration)
+        self.assertEqual(ticket.category, Ticket.CATEGORY_VIP)
+        self.assertEqual(ticket.status, Ticket.STATUS_PENDING)
+        self.assertEqual(ticket.price, Decimal("10.00"))
+        form_response = self.client.get(
+            reverse("registration_access:registration_request")
+        )
+        self.assertContains(form_response, "Le paiement en ligne sera intégré au Sprint 2")
+
+    def test_participant_lists_and_ticket_details_are_scoped_to_their_account(self):
+        another_user = get_user_model().objects.create_user(
+            email="other@example.test",
+            first_name="Other",
+            last_name="Participant",
+            password="test-password",
+        )
+        other_registration = Registration.objects.create(
+            user=another_user,
+            event_id=73,
+            ticket_type=Registration.TICKET_TYPE_STANDARD,
+        )
+        other_ticket = Ticket.objects.create(
+            registration=other_registration,
+            price="10.00",
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("registration_access:my_registrations"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Événement 73")
+        self.assertContains(response, "Événement 12")
+        self.assertEqual(response.context["paginator"].count, 1)
+
+        response = self.client.get(reverse("registration_access:my_tickets"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, other_ticket.code)
+        self.assertEqual(response.context["paginator"].count, 1)
+
+        response = self.client.get(
+            reverse("registration_access:my_ticket_detail", args=[other_ticket.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+        response = self.client.post(
+            reverse(
+                "registration_access:registration_cancel",
+                args=[other_registration.pk],
+            )
+        )
+        self.assertEqual(response.status_code, 404)
+        response = self.client.post(
+            reverse(
+                "registration_access:registration_confirm",
+                args=[other_registration.pk],
+            )
+        )
+        self.assertEqual(response.status_code, 404)
+        other_registration.refresh_from_db()
+        self.assertEqual(other_registration.status, Registration.STATUS_PENDING)
+
+    def test_participant_can_confirm_a_free_ticket_and_view_its_qr(self):
+        registration = Registration.objects.create(
+            user=self.user,
+            event_id=75,
+            ticket_type=Registration.TICKET_TYPE_STANDARD,
+        )
+        ticket = Ticket.objects.create(
+            registration=registration,
+            price="0.00",
+            status=Ticket.STATUS_PENDING,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("registration_access:my_tickets"))
+        self.assertContains(response, "Confirmer")
+
+        checkout_url = reverse(
+            "registration_access:registration_confirm",
+            args=[registration.pk],
+        )
+        response = self.client.get(checkout_url)
+        self.assertContains(response, "Le montant est nul")
+        self.assertNotContains(response, "Nom du payeur")
+
+        response = self.client.post(
+            checkout_url,
+            {"confirmation": "on"},
+            follow=True,
+        )
+        self.assertContains(response, "Votre billet gratuit est confirmé.")
+        registration.refresh_from_db()
+        ticket.refresh_from_db()
+        self.assertEqual(registration.status, Registration.STATUS_CONFIRMED)
+        self.assertEqual(
+            registration.payment_status,
+            Registration.PAYMENT_NOT_REQUIRED,
+        )
+        self.assertEqual(ticket.status, Ticket.STATUS_AVAILABLE)
+
+        response = self.client.get(
+            reverse("registration_access:my_ticket_detail", args=[ticket.pk])
+        )
+        self.assertContains(response, "data:image/svg+xml;base64,")
+
+    def test_participant_simulates_payment_for_a_paid_ticket_without_real_charge(self):
+        registration = Registration.objects.create(
+            user=self.user,
+            event_id=76,
+            ticket_type=Registration.TICKET_TYPE_VIP,
+        )
+        ticket = Ticket.objects.create(
+            registration=registration,
+            price="25.00",
+            status=Ticket.STATUS_PENDING,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("registration_access:my_tickets"))
+        self.assertContains(response, "Payer")
+        self.assertNotContains(response, "Simulation, sans débit réel")
+
+        checkout_url = reverse(
+            "registration_access:registration_confirm",
+            args=[registration.pk],
+        )
+        response = self.client.get(checkout_url)
+        self.assertContains(response, "Nom du titulaire")
+        self.assertContains(response, "Numéro de carte")
+        self.assertContains(response, "Date d’expiration")
+        self.assertContains(response, "Cryptogramme visuel (CVV)")
+        self.assertContains(response, "leur contenu n’est ni transmis ni enregistré")
+        self.assertContains(response, 'autocomplete="off"')
+        self.assertNotContains(response, 'name="card-number"')
+        self.assertNotContains(response, 'name="card-security-code"')
+        self.assertNotContains(response, "Je confirme le paiement de test")
+        self.assertEqual(set(response.context["form"].fields), set())
+
+        response = self.client.post(
+            checkout_url,
+            {
+                "card-number": "anything",
+                "card-expiration": "any date",
+                "card-security-code": "anything",
+            },
+            follow=True,
+        )
+        self.assertContains(response, "Votre paiement de test est confirmé.")
+        registration.refresh_from_db()
+        ticket.refresh_from_db()
+        self.assertEqual(registration.status, Registration.STATUS_CONFIRMED)
+        self.assertEqual(registration.payment_status, Registration.PAYMENT_PAID)
+        self.assertEqual(ticket.status, Ticket.STATUS_AVAILABLE)
+
+    def test_participant_can_cancel_only_their_pending_request(self):
+        self.client.force_login(self.user)
+        home_response = self.client.get(reverse("registration_access:home"))
+        self.assertContains(home_response, "Mes inscriptions")
+        self.assertNotContains(home_response, "Gérer les inscriptions")
+
+        response = self.client.post(
+            reverse("registration_access:registration_request"),
+            {
+                "event_id": 74,
+                "ticket_type": Registration.TICKET_TYPE_STANDARD,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        registration = Registration.objects.get(event_id=74)
+        response = self.client.post(
+            reverse("registration_access:registration_cancel", args=[registration.pk])
+        )
+        self.assertRedirects(response, reverse("registration_access:my_registrations"))
+        registration.refresh_from_db()
+        self.assertEqual(registration.status, Registration.STATUS_CANCELLED)
+        self.assertEqual(registration.tickets.get().status, Ticket.STATUS_CANCELLED)
 
     def test_attendance_rejects_checkout_before_checkin(self):
         attendance = Attendance(
