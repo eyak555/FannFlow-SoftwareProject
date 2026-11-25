@@ -127,9 +127,16 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 
-# Écran de connexion du module 1 (placeholder tant que l'authentification
-# n'est pas développée dans la branche de ce module).
+# Fichiers envoyés par les utilisateurs (photos de profil).
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+
+# Authentification — Module 1 (users_teams).
+# Modèle utilisateur personnalisé : l'email sert d'identifiant.
+AUTH_USER_MODEL = 'users_teams.User'
 LOGIN_URL = 'users_teams:login'
+LOGOUT_REDIRECT_URL = 'core:home'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

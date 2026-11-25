@@ -1,0 +1,38 @@
+{% extends "core/layouts/detail.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'users_teams/css/users_teams.css' %}">{% endblock %}
+
+{% block page_actions %}
+  <a class="btn btn-secondary" href="{% url 'users_teams:user_list' %}">Retour à la liste</a>
+  <a class="btn btn-primary" href="{% url 'users_teams:user_update' managed_user.pk %}">Modifier</a>
+  {% if managed_user.pk != user.pk %}
+    <a class="btn btn-danger" href="{% url 'users_teams:user_delete' managed_user.pk %}">Supprimer</a>
+  {% endif %}
+{% endblock %}
+
+{% block detail_fields %}
+  {# Password_hash et Face_encoding ne sont jamais affichés. #}
+  <dt>Photo</dt>
+  <dd>{% include "users_teams/components/avatar.html" with person=managed_user large=True %}</dd>
+  <dt>Prénom</dt>
+  <dd>{{ managed_user.first_name }}</dd>
+  <dt>Nom</dt>
+  <dd>{{ managed_user.last_name }}</dd>
+  <dt>Email</dt>
+  <dd>{{ managed_user.email }}</dd>
+  <dt>Téléphone</dt>
+  <dd>{{ managed_user.phone|default:"—" }}</dd>
+  <dt>Date de naissance</dt>
+  <dd>{{ managed_user.birth_date|date:"d/m/Y"|default:"—" }}</dd>
+  <dt>Rôle</dt>
+  <dd><span class="badge{% if managed_user.is_administrator %} badge--admin{% endif %}">{{ managed_user.get_role_display }}</span></dd>
+  <dt>Rôle métier</dt>
+  <dd>{% if managed_user.business_role %}<span class="badge badge--team">{{ managed_user.get_business_role_display }}</span>{% else %}—{% endif %}</dd>
+  <dt>Statut</dt>
+  <dd><span class="badge badge--{{ managed_user.status }}">{{ managed_user.get_status_display }}</span></dd>
+  <dt>Créé le</dt>
+  <dd class="data">{{ managed_user.created_at|date:"d/m/Y H:i" }}</dd>
+  <dt>Dernière connexion</dt>
+  <dd class="data">{{ managed_user.last_login|date:"d/m/Y H:i"|default:"Jamais" }}</dd>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "core/layouts/list.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'users_teams/css/users_teams.css' %}">{% endblock %}
+
+{% block page_actions %}
+  <a class="btn btn-secondary" href="{% url 'users_teams:home' %}">Espace de gestion</a>
+  <a class="btn btn-primary" href="{% url 'users_teams:user_create' %}">Nouvel utilisateur</a>
+{% endblock %}
+
+{% block filters %}
+  <form class="list-filters" method="get" role="search" aria-label="Rechercher des utilisateurs">
+    <div class="field">
+      <label for="filter-q">Recherche</label>
+      <input class="ff-input" id="filter-q" type="search" name="q" value="{{ filters.q }}" placeholder="Nom, prénom ou email">
+    </div>
+    <div class="field">
+      <label for="filter-role">Rôle</label>
+      <select class="ff-input" id="filter-role" name="role">
+        <option value="">Tous</option>
+        {% for value, label in role_choices %}
+          <option value="{{ value }}"{% if filters.role == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="filter-status">Statut</label>
+      <select class="ff-input" id="filter-status" name="status">
+        <option value="">Tous</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}"{% if filters.status == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="filter-sort">Trier par</label>
+      <select class="ff-input" id="filter-sort" name="sort">
+        {% for value, label in sort_options.items %}
+          <option value="{{ value }}"{% if filters.sort == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Filtrer</button>
+      <a class="btn btn-secondary" href="{% url 'users_teams:user_list' %}">Réinitialiser</a>
+    </div>
+  </form>
+{% endblock %}
+
+{% block table_head %}
+  <tr>
+    <th scope="col"><a href="{% querystring sort=next_sort.last_name page=None %}">Nom{{ sort_arrows.last_name }}</a> /
+      <a href="{% querystring sort=next_sort.first_name page=None %}">Prénom{{ sort_arrows.first_name }}</a></th>
+    <th scope="col">Email</th>
+    <th scope="col"><a href="{% querystring sort=next_sort.role page=None %}">Rôle{{ sort_arrows.role }}</a></th>
+    <th scope="col">Rôle métier</th>
+    <th scope="col">Statut</th>
+    <th scope="col"><a href="{% querystring sort=next_sort.created_at page=None %}">Créé le{{ sort_arrows.created_at }}</a></th>
+    <th scope="col">Actions</th>
+  </tr>
+{% endblock %}
+
+{% block table_body %}
+  {% for managed_user in users %}
+    <tr>
+      <td>
+        <div class="user-cell">
+          {% include "users_teams/components/avatar.html" with person=managed_user %}
+          <a href="{% url 'users_teams:user_detail' managed_user.pk %}">{{ managed_user.last_name }} {{ managed_user.first_name }}</a>
+        </div>
+      </td>
+      <td>{{ managed_user.email }}</td>
+      <td><span class="badge{% if managed_user.is_administrator %} badge--admin{% endif %}">{{ managed_user.get_role_display }}</span></td>
+      <td>{% if managed_user.business_role %}<span class="badge badge--team">{{ managed_user.get_business_role_display }}</span>{% else %}—{% endif %}</td>
+      <td><span class="badge badge--{{ managed_user.status }}">{{ managed_user.get_status_display }}</span></td>
+      <td class="data">{{ managed_user.created_at|date:"d/m/Y" }}</td>
+      <td>
+        <div class="row-actions">
+          <a class="btn btn-secondary" href="{% url 'users_teams:user_detail' managed_user.pk %}">Voir</a>
+          <a class="btn btn-secondary" href="{% url 'users_teams:user_update' managed_user.pk %}">Modifier</a>
+          {% if managed_user.pk != user.pk %}
+            <a class="btn btn-danger" href="{% url 'users_teams:user_delete' managed_user.pk %}">Supprimer</a>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+  {% empty %}
+    <tr>
+      <td class="empty-cell" colspan="7">
+        {% include "core/components/empty_state.html" with title="Aucun utilisateur" text="Aucun utilisateur ne correspond à ces critères." %}
+      </td>
+    </tr>
+  {% endfor %}
+{% endblock %}

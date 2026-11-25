@@ -346,3 +346,24 @@ main { flex: 1; padding-block: 40px 64px; }
   .footer-grid { grid-template-columns: 1fr; gap: 28px; padding: 36px 0 30px; }
   .footer-bottom { flex-direction: column; gap: 6px; text-align: center; }
 }
+
+/* Composants partagés ajoutés au Sprint 1 (Module 1) : session, messages, erreurs de formulaire. */
+.header-session { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.header-session .header-profile { margin-left: 0; padding: 5px; white-space: nowrap; }
+.header-session .header-profile > span { display: none; }
+.header-session form { margin: 0; }
+.messages { list-style: none; margin: 0 0 24px; padding: 0; display: grid; gap: 8px; }
+.message { border-left: 4px solid var(--blue-secondary); border-radius: 6px; background: var(--white); padding: 12px 16px; box-shadow: 0 4px 12px rgba(38,50,56,.05); }
+.message--success { border-left-color: var(--green); background: #EAF4EC; }
+.message--error { border-left-color: var(--red); background: #FBECEC; }
+.message--warning { border-left-color: var(--orange); background: #FFF8E8; }
+.errorlist { list-style: none; margin: 0; padding: 0; color: var(--red); font-size: .8125rem; }
+.errorlist.nonfield { margin-bottom: 18px; border-left: 4px solid var(--red); background: #FBECEC; padding: 10px 14px; }
+.field--error .ff-input { border-color: var(--red); }
+@media (max-width: 900px) {
+  .header-session { position: absolute; right: 16px; top: 12px; }
+  .header-session .header-profile { position: static; }
+}
+@media (max-width: 600px) {
+  .header-session .btn { padding: 8px 10px; }
+}
