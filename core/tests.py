@@ -65,10 +65,20 @@ class BackOfficeAccessTests(TestCase):
     def test_participant_is_forbidden(self):
         self.client.force_login(make_user("p@test.tn"))
         for name in self.MODULE_URLS:
+            if name == "registration_access:home":
+                continue  # page d'accueil commune participants / équipe
             with self.subTest(name=name):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 403)
         listing = reverse("registration_access:entity_list", args=["registrations"])
         self.assertEqual(self.client.get(listing).status_code, 403)
+
+    def test_participant_reaches_registration_participant_pages(self):
+        self.client.force_login(make_user("p@test.tn"))
+        for name in ("registration_access:home", "registration_access:my_registrations", "registration_access:my_tickets"):
+            with self.subTest(name=name):
+                response = self.client.get(reverse(name))
+                self.assertEqual(response.status_code, 200)
+                self.assertNotContains(response, "bo-sidebar")  # affichées dans le site public
 
     def test_team_members_reach_backoffice(self):
         for role in (User.BusinessRole.DIRECTOR, User.BusinessRole.ORGANIZER):

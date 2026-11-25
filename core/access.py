@@ -31,6 +31,23 @@ PUBLIC_URL_NAMES = {
     ("users_teams", "password_forgotten"),
 }
 
+# Pages de modules destinées aussi aux participants : connexion requise,
+# puis chaque vue applique ses propres règles (ex. Registration & Access :
+# un participant ne voit que ses inscriptions et ses billets).
+PARTICIPANT_URL_NAMES = {
+    ("registration_access", "home"),
+    ("registration_access", "my_registrations"),
+    ("registration_access", "registration_request"),
+    ("registration_access", "registration_cancel"),
+    ("registration_access", "registration_confirm"),
+    ("registration_access", "my_tickets"),
+    ("registration_access", "my_ticket_detail"),
+}
+
+
+def is_participant_page(match):
+    return match is not None and (match.namespace, match.url_name) in PARTICIPANT_URL_NAMES
+
 
 def is_backoffice_match(match):
     if match is None or match.namespace not in BACKOFFICE_NAMESPACES:
@@ -56,6 +73,8 @@ class BackOfficeAccessMiddleware:
             return None
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
+        if is_participant_page(request.resolver_match):
+            return None
         if not can_access_backoffice(request.user):
             raise PermissionDenied("Espace réservé à l’équipe d’organisation.")
         return None

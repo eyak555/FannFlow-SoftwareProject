@@ -8,7 +8,7 @@ from core.registry import get_modules
 # Pour un participant, certains modules ont un équivalent côté site public.
 PARTICIPANT_DESTINATIONS = {
     "events_program": "core:events",
-    "registration_access": "core:my_space",
+    "registration_access": "registration_access:home",
 }
 
 
