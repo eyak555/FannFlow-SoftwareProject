@@ -1,0 +1,14 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<section class="page-card page-card--narrow">
+  <p class="eyebrow">Gestion des inscriptions</p>
+  <h1>{% if object %}Modifier l’inscription{% else %}Nouvelle inscription{% endif %}</h1>
+  <p class="page-intro">{% if object %}Mettez à jour les informations de l’inscription.{% else %}Renseignez les informations de l’inscription à ajouter.{% endif %}</p>
+  <form class="ff-form app-form" method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Enregistrer</button><a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'registrations' %}">Annuler</a></div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<section class="page-card">
+  <header class="page-heading"><div><p class="eyebrow">Fiche présence</p><h1>{{ attendance }}</h1><p class="page-intro">Informations de passage du participant.</p></div>{% if not attendance.check_out and attendance.check_in %}<form method="post" action="{% url 'registration_access:attendance_check_out' attendance.pk %}">{% csrf_token %}<button class="btn btn-primary" type="submit">Enregistrer la sortie</button></form>{% endif %}</header>
+  <dl class="detail-grid">
+    <div class="detail-item"><dt class="detail-label">Billet</dt><dd class="detail-value">{{ attendance.ticket }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Entrée</dt><dd class="detail-value">{{ attendance.check_in|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Sortie</dt><dd class="detail-value">{{ attendance.check_out|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Point d’accès</dt><dd class="detail-value">{{ attendance.access_point.name }} — {{ attendance.access_point.location }}</dd></div>
+  </dl>
+  <a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'attendances' %}">Retour aux présences</a>
+</section>
+{% endblock %}

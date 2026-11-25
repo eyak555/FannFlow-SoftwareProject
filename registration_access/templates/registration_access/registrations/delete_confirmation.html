@@ -1,0 +1,11 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<section class="page-card page-card--narrow">
+  <p class="eyebrow">Action irréversible</p>
+  <h1>Supprimer cette inscription ?</h1>
+  <p class="page-intro">Vous êtes sur le point de supprimer <strong>{{ registration }}</strong>.</p>
+  <p class="placeholder-note">Les billets et présences associés à cette inscription seront également supprimés.</p>
+  <form class="form-actions" method="post">{% csrf_token %}<button class="btn btn-danger" type="submit">Oui, supprimer</button><a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'registrations' %}">Annuler</a></form>
+</section>
+{% endblock %}

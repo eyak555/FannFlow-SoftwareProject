@@ -1,0 +1,44 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<header class="page-header registration-heading">
+  <div><p class="eyebrow">Gestion des billets</p><h1>Billets</h1><p class="lede">Consultez les billets émis pour les événements.</p></div>
+  <div class="page-header__actions"><a class="btn btn-primary" href="{% url 'registration_access:entity_create' 'tickets' %}"><span aria-hidden="true">+</span> Ajouter un billet</a></div>
+</header>
+
+<section class="registration-stats" aria-label="Résumé des billets">
+  <article class="registration-stat registration-stat--total"><span class="registration-stat__icon" aria-hidden="true">◇</span><div><p>Total des billets</p><strong>{{ ticket_stats.total }}</strong></div></article>
+  <article class="registration-stat registration-stat--pending"><span class="registration-stat__icon" aria-hidden="true">◷</span><div><p>En attente</p><strong>{{ ticket_stats.pending }}</strong></div></article>
+  <article class="registration-stat registration-stat--confirmed"><span class="registration-stat__icon" aria-hidden="true">✓</span><div><p>Disponibles</p><strong>{{ ticket_stats.available }}</strong></div></article>
+  <article class="registration-stat registration-stat--paid"><span class="registration-stat__icon" aria-hidden="true">↗</span><div><p>Utilisés</p><strong>{{ ticket_stats.used }}</strong></div></article>
+  <article class="registration-stat registration-stat--pending"><span class="registration-stat__icon" aria-hidden="true">!</span><div><p>Annulés</p><strong>{{ ticket_stats.cancelled }}</strong></div></article>
+</section>
+
+<section class="registration-table-panel" aria-label="Liste des billets">
+  <form class="registration-filters" method="get">
+    <input type="hidden" name="per_page" value="{{ selected_page_size }}">
+    <label class="registration-search"><span class="visually-hidden">Rechercher un billet ou un participant</span><span aria-hidden="true">⌕</span><input type="search" name="q" value="{{ search_query }}" placeholder="Code billet (FF-000001) ou participant…"></label>
+    <label class="registration-filter"><span class="visually-hidden">Filtrer par catégorie</span><select name="category"><option value="">Toutes les catégories</option>{% for value, label in category_choices %}<option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label class="registration-filter"><span class="visually-hidden">Filtrer par statut</span><select name="status"><option value="">Tous les statuts</option>{% for value, label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <button class="btn btn-secondary registration-filter-submit" type="submit">Filtrer</button>
+    {% if search_query or selected_category or selected_status %}<a class="registration-reset" href="{% url 'registration_access:entity_list' 'tickets' %}?per_page={{ selected_page_size }}">Réinitialiser</a>{% endif %}
+  </form>
+
+  <div class="registration-table-heading"><div><h2>Billets émis</h2><p>{{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize:"s" }}</p></div>{% if search_query or selected_category or selected_status %}<span class="filter-active">Filtres actifs</span>{% endif %}</div>
+  <div class="table-wrap registration-table-wrap">
+    <table class="data-table registration-table">
+      <thead><tr><th>Billet</th><th>Participant</th><th>Catégorie</th><th>Prix</th><th>Statut</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody>{% for ticket in tickets %}
+        <tr>
+          <td><span class="ticket-code">{{ ticket.code }}</span></td>
+          <td><div class="participant-cell"><span class="participant-avatar" aria-hidden="true">{{ ticket.registration.user.username|slice:":1"|upper }}</span><span><strong>{{ ticket.registration.user.get_full_name|default:ticket.registration.user.username }}</strong>{% if ticket.registration.user.email %}<small>{{ ticket.registration.user.email }}</small>{% endif %}</span></div></td>
+          <td>{{ ticket.get_category_display }}</td><td>{{ ticket.price }}</td>
+          <td>{% if ticket.status == "available" %}<span class="status-pill status-pill--success"><span></span>{{ ticket.get_status_display }}</span>{% elif ticket.status == "pending" %}<span class="status-pill status-pill--pending"><span></span>{{ ticket.get_status_display }}</span>{% elif ticket.status == "used" %}<span class="status-pill status-pill--info"><span></span>{{ ticket.get_status_display }}</span>{% elif ticket.status == "cancelled" %}<span class="status-pill status-pill--danger"><span></span>{{ ticket.get_status_display }}</span>{% else %}<span class="status-pill status-pill--neutral"><span></span>{{ ticket.get_status_display }}</span>{% endif %}</td>
+          <td><div class="table-actions"><a class="table-action table-action--view" href="{% url 'registration_access:entity_detail' 'tickets' ticket.pk %}">Voir</a><a class="table-action table-action--edit" href="{% url 'registration_access:entity_update' 'tickets' ticket.pk %}">Modifier</a><a class="table-action table-action--delete" href="{% url 'registration_access:entity_delete' 'tickets' ticket.pk %}">Supprimer</a></div></td>
+        </tr>
+      {% empty %}<tr><td class="empty-cell" colspan="6"><div class="registration-empty"><span aria-hidden="true">◇</span><h2>Aucun résultat</h2><p>{% if search_query or selected_category or selected_status %}Modifiez les filtres pour élargir la recherche.{% else %}Les billets apparaîtront ici après leur émission.{% endif %}</p></div></td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+{% include "core/components/pagination.html" %}
+{% endblock %}

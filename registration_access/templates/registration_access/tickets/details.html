@@ -1,0 +1,27 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<section class="page-card">
+  <header class="page-heading"><div><p class="eyebrow">Fiche billet</p><h1>{{ ticket }}</h1><p class="page-intro">Détails du billet et de son détenteur.</p></div>{% if user.is_authenticated %}<a class="btn btn-primary" href="{% url 'registration_access:entity_update' 'tickets' ticket.pk %}">Modifier le billet</a>{% endif %}</header>
+  <dl class="detail-grid">
+    <div class="detail-item"><dt class="detail-label">Code billet</dt><dd class="detail-value data">{{ ticket.code }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Inscription</dt><dd class="detail-value">{{ ticket.registration }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Catégorie</dt><dd class="detail-value">{{ ticket.get_category_display }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Prix</dt><dd class="detail-value">{{ ticket.price }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Statut</dt><dd class="detail-value"><span class="status-pill">{{ ticket.get_status_display }}</span></dd></div>
+  </dl>
+  {% if qr_code_image %}
+    <figure class="ticket-qr">
+      <img src="{{ qr_code_image }}" alt="Code QR du billet {{ ticket.code }}">
+      <figcaption>Présentez ce code à l’entrée de l’événement.</figcaption>
+    </figure>
+  {% elif ticket.status == "used" %}
+    <p class="ticket-qr-pending">Ce billet a déjà été utilisé. La réentrée n’est pas autorisée.</p>
+  {% elif ticket.status == "cancelled" or ticket.status == "refunded" %}
+    <p class="ticket-qr-pending">Ce billet n’est plus valide.</p>
+  {% else %}
+    <p class="ticket-qr-pending">Le QR sera disponible après confirmation de l’inscription et, si nécessaire, du paiement.</p>
+  {% endif %}
+  <a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'tickets' %}">Retour aux billets</a>
+</section>
+{% endblock %}
