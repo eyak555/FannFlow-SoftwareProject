@@ -1,0 +1,20 @@
+{% extends "core/layouts/form.html" %}
+
+{% block form_fields %}
+  <h2 class="pref-title"><i data-lucide="key-round" aria-hidden="true"></i> Mot de passe</h2>
+  {{ block.super }}
+{% endblock %}
+
+{% block content %}
+  {{ block.super }}
+  <section class="ff-form danger-zone" aria-labelledby="danger-title">
+    <h2 id="danger-title" class="pref-title"><i data-lucide="trash-2" aria-hidden="true"></i> Supprimer mon compte</h2>
+    <p class="hint">Supprime définitivement votre compte et vos inscriptions, sans passer par un administrateur. Une confirmation par mot de passe vous sera demandée.</p>
+    <a class="btn btn-danger" href="{% url 'core:delete_account' %}"><i data-lucide="trash-2" aria-hidden="true"></i> Supprimer mon compte…</a>
+  </section>
+{% endblock %}
+
+{% block form_actions %}
+  <button type="submit" class="btn btn-primary"><i data-lucide="save" aria-hidden="true"></i> Modifier le mot de passe</button>
+  <a class="btn btn-ghost" href="{% url 'users_teams:profile' %}"><i data-lucide="user-cog" aria-hidden="true"></i> Mon profil</a>
+{% endblock %}

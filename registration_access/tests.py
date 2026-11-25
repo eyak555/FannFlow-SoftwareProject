@@ -14,10 +14,16 @@ class RegistrationAccessCrudTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
         self.user = get_user_model().objects.create_user(
+<<<<<<< Updated upstream
             email="participant@example.test",
             first_name="Ada",
             last_name="Participant",
+=======
+            email="participant@test.tn",
+>>>>>>> Stashed changes
             password="test-password",
+            first_name="Participant",
+            last_name="Test",
         )
         self.admin = user_model.objects.create_superuser(
             email="admin@example.test",
@@ -47,6 +53,15 @@ class RegistrationAccessCrudTests(TestCase):
             ticket=self.ticket,
             access_point=self.access_point,
         )
+        # Le module appartient au back-office : on travaille en organisateur.
+        self.organizer = get_user_model().objects.create_user(
+            email="organisateur@test.tn",
+            password="test-password",
+            first_name="Orga",
+            last_name="Test",
+            business_role="organisateur",
+        )
+        self.client.force_login(self.organizer)
 
     def test_registration_access_homepage_uses_module_template_and_brand(self):
         response = self.client.get(reverse("registration_access:home"))

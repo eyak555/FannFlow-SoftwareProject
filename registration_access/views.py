@@ -340,6 +340,10 @@ class TicketListView(RegistrationAccessListView):
         if self.search_query:
             search_filter = (
                 Q(code__icontains=self.search_query)
+<<<<<<< Updated upstream
+=======
+                | Q(registration__user__email__icontains=self.search_query)
+>>>>>>> Stashed changes
                 | Q(registration__user__first_name__icontains=self.search_query)
                 | Q(registration__user__last_name__icontains=self.search_query)
                 | Q(registration__user__email__icontains=self.search_query)
@@ -437,6 +441,10 @@ class AttendanceListView(RegistrationAccessListView):
             search_filter = (
                 Q(access_point__name__icontains=self.search_query)
                 | Q(ticket__code__icontains=self.search_query)
+<<<<<<< Updated upstream
+=======
+                | Q(ticket__registration__user__email__icontains=self.search_query)
+>>>>>>> Stashed changes
                 | Q(ticket__registration__user__first_name__icontains=self.search_query)
                 | Q(ticket__registration__user__last_name__icontains=self.search_query)
                 | Q(ticket__registration__user__email__icontains=self.search_query)

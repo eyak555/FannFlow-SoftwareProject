@@ -1,0 +1,72 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'users_teams/css/users_teams.css' %}">{% endblock %}
+
+{% block content %}
+  <header class="adm-head">
+    <div>
+      <h1>{{ page_title }}</h1>
+      <p class="adm-head__lead">{{ page_intro }}</p>
+    </div>
+    {% if user.is_administrator %}
+      <div class="adm-head__actions">
+        <a class="btn btn-primary" href="{% url 'users_teams:user_create' %}?role=participant&amp;business_role=organisateur"><i data-lucide="user-plus" aria-hidden="true"></i> Ajouter un membre</a>
+      </div>
+    {% endif %}
+  </header>
+
+  {% if not events_available %}
+    <div class="notice" role="note">
+      <i data-lucide="info" aria-hidden="true"></i>
+      <p><strong>Intégration préparée.</strong> L’affectation des membres aux événements s’affichera automatiquement dès que le module Events &amp; Program fournira le modèle Événement.</p>
+    </div>
+  {% endif %}
+
+  <nav class="filter-bar" aria-label="Filtrer par rôle métier">
+    <a class="chip" href="{% url 'users_teams:organizers' %}" {% if not selected_business_role %}aria-current="true"{% endif %}>Tous ({{ counts.directors|add:counts.organizers }})</a>
+    {% for value, label in business_role_choices %}
+      <a class="chip" href="?business_role={{ value }}" {% if selected_business_role == value %}aria-current="true"{% endif %}>{{ label }}s ({% if value == "directeur" %}{{ counts.directors }}{% else %}{{ counts.organizers }}{% endif %})</a>
+    {% endfor %}
+  </nav>
+
+  {% if rows %}
+    <div class="panel">
+      <div class="table-scroll">
+        <table class="adm-table">
+          <caption class="visually-hidden">{{ page_title }}</caption>
+          <thead><tr><th scope="col">Membre</th><th scope="col">Rôle métier</th><th scope="col">Statut</th><th scope="col">Événements affectés</th>{% if user.is_administrator %}<th scope="col"><span class="visually-hidden">Actions</span></th>{% endif %}</tr></thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td><div class="user-cell">{% include "users_teams/components/avatar.html" with person=row.user %}<strong>{{ row.user.get_full_name }}</strong></div></td>
+                <td><span class="badge badge--team">{{ row.user.get_business_role_display }}</span></td>
+                <td><span class="badge badge--{{ row.user.status }}">{{ row.user.get_status_display }}</span></td>
+                <td>
+                  {% if row.events %}
+                    {% for event in row.events|slice:":3" %}<span class="tag">{{ event }}</span> {% endfor %}
+                    {% if row.events|length > 3 %}<span class="text-muted">+{{ row.events|length|add:"-3" }}</span>{% endif %}
+                  {% else %}
+                    <span class="text-muted">{% if events_available %}Aucune affectation{% else %}En attente du module Events{% endif %}</span>
+                  {% endif %}
+                </td>
+                {% if user.is_administrator %}
+                  <td class="table-actions">
+                    <a class="table-action" href="{% url 'users_teams:user_detail' row.user.pk %}">Voir</a>
+                    <a class="table-action" href="{% url 'users_teams:user_update' row.user.pk %}">Modifier le rôle</a>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="state">
+      <span class="icon-badge"><i data-lucide="briefcase" aria-hidden="true"></i></span>
+      <h3>Aucun directeur ni organisateur</h3>
+      <p>Attribuez un rôle métier à un compte pour constituer l’équipe d’organisation.</p>
+    </div>
+  {% endif %}
+{% endblock %}

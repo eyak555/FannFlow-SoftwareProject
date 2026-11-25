@@ -21,6 +21,10 @@ urlpatterns = [
     path("users/<int:pk>/", views.UserDetailView.as_view(), name="user_detail"),
     path("users/<int:pk>/modifier/", views.UserUpdateView.as_view(), name="user_update"),
     path("users/<int:pk>/supprimer/", views.UserDeleteView.as_view(), name="user_delete"),
+    # Organisateurs d'événements et préférences (équipe d'organisation)
+    path("organisateurs/", views.OrganizersView.as_view(), name="organizers"),
+    path("profil/", views.ProfileView.as_view(), name="profile"),
+    path("parametres/", views.SettingsView.as_view(), name="settings"),
     # Autres entités du module : encore en placeholder
     *crud_patterns(views),
 ]

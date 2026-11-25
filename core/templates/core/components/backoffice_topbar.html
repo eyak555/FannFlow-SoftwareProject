@@ -1,0 +1,52 @@
+<header class="bo-topbar">
+  <button class="bo-topbar__menu" type="button" aria-expanded="false" aria-controls="bo-sidebar" data-sidebar-toggle>
+    <i data-lucide="menu" aria-hidden="true"></i>
+    <span class="visually-hidden">Ouvrir la navigation</span>
+  </button>
+
+  <div class="bo-topbar__title">
+    <span class="bo-topbar__crumb">Espace de gestion</span>
+    <strong>{{ page_title|default:current_module_title }}</strong>
+  </div>
+
+  <div class="bo-topbar__actions">
+    <a class="btn btn-ghost btn-sm fo-hide-md" href="{% url 'core:home' %}">
+      <i data-lucide="globe" aria-hidden="true"></i> Site public
+    </a>
+
+    {% if topbar_notifications is not None %}
+      <div class="fo-dropdown bo-bell" data-dropdown>
+        <button class="bo-icon-btn" type="button" aria-expanded="false" aria-haspopup="true" data-dropdown-toggle
+                aria-label="Notifications{% if topbar_notifications %} ({{ topbar_notifications|length }}){% endif %}">
+          <i data-lucide="bell" aria-hidden="true"></i>
+          {% if topbar_notifications %}<span class="bo-bell__dot">{{ topbar_notifications|length }}</span>{% endif %}
+        </button>
+        <div class="fo-dropdown__menu bo-bell__menu" role="menu" data-dropdown-menu>
+          <p class="bo-bell__title">Notifications</p>
+          {% for n in topbar_notifications %}
+            <a class="fo-dropdown__item" role="menuitem" href="{{ n.url }}">
+              <span class="icon-badge icon-badge--sm icon-badge--{{ n.tone }}"><i data-lucide="{{ n.icon }}" aria-hidden="true"></i></span>
+              <span><strong>{{ n.title }}</strong><small>{{ n.text }}</small></span>
+            </a>
+          {% empty %}
+            <p class="bo-bell__empty"><i data-lucide="circle-check" aria-hidden="true"></i> Aucune notification</p>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <a class="fo-user bo-profile" href="{% url 'users_teams:profile' %}" aria-label="Mon profil">
+      {% include "users_teams/components/avatar.html" with person=user %}
+      <span class="fo-user__meta">
+        <strong>{{ user.get_full_name }}</strong>
+        <small>{% if user.business_role %}{{ user.get_business_role_display }}{% else %}{{ user.get_role_display }}{% endif %}</small>
+      </span>
+    </a>
+    <form method="post" action="{% url 'users_teams:logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-sm" aria-label="Se déconnecter">
+        <i data-lucide="log-out" aria-hidden="true"></i><span class="fo-hide-md">Déconnexion</span>
+      </button>
+    </form>
+  </div>
+</header>

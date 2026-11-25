@@ -1,0 +1,13 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-hero">
+    <p class="eyebrow">Mon compte</p>
+    <h1>Mon profil</h1>
+    <p>Consultez et modifiez vos informations, votre mot de passe, ou supprimez votre compte.</p>
+  </header>
+  <div class="card acct-page">
+    {% url 'core:my_space' as my_space_url %}
+    {% include "core/components/account_panels.html" with next=my_space_url %}
+  </div>
+{% endblock %}

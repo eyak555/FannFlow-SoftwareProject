@@ -1,0 +1,95 @@
+{% comment %}
+Contenu « Mon profil » : utilisé dans la fenêtre de la barre du haut et
+sur la page /mon-profil/. Paramètres : account_forms {profile, password, tab,
+deletion_blocker} et next (adresse de retour).
+{% endcomment %}
+{% with f=account_forms tab=account_forms.tab|default:"profile" %}
+<div class="acct" data-tabs>
+  <div class="acct__head">
+    {% include "users_teams/components/avatar.html" with person=user large=True %}
+    <div>
+      <h2 class="acct__name" id="acct-title">{{ user.get_full_name }}</h2>
+      <p class="acct__mail">{{ user.email }}</p>
+      <span class="tag tag--teal">{% if user.business_role %}{{ user.get_business_role_display }}{% else %}{{ user.get_role_display }}{% endif %}</span>
+      <span class="tag">Membre depuis {{ user.created_at|date:"F Y" }}</span>
+    </div>
+  </div>
+
+  <div class="acct__tabs" role="tablist" aria-label="Mon compte">
+    <button type="button" role="tab" id="acct-t-profile" aria-controls="acct-p-profile" aria-selected="{% if tab == 'profile' %}true{% else %}false{% endif %}" data-tab="profile"><i data-lucide="user-pen" aria-hidden="true"></i> Mon profil</button>
+    <button type="button" role="tab" id="acct-t-password" aria-controls="acct-p-password" aria-selected="{% if tab == 'password' %}true{% else %}false{% endif %}" data-tab="password"><i data-lucide="key-round" aria-hidden="true"></i> Mot de passe</button>
+    <button type="button" role="tab" id="acct-t-delete" aria-controls="acct-p-delete" aria-selected="{% if tab == 'delete' %}true{% else %}false{% endif %}" data-tab="delete" class="acct__tab--danger"><i data-lucide="trash-2" aria-hidden="true"></i> Supprimer</button>
+  </div>
+
+  {# --- Profil --- #}
+  <section class="acct__panel" role="tabpanel" id="acct-p-profile" aria-labelledby="acct-t-profile"{% if tab != "profile" %} hidden{% endif %}>
+    <form method="post" action="{% url 'core:profile' %}" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next|default:request.get_full_path }}">
+      {{ f.profile.non_field_errors }}
+      <div class="acct__grid">
+        {% for field in f.profile %}
+          <div class="field{% if field.errors %} field--error{% endif %}{% if field.name == 'profile_picture' %} acct__wide{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label|capfirst }}</label>
+            {{ field }}
+            {% if field.help_text %}<p class="hint">{{ field.help_text }}</p>{% endif %}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+      </div>
+      <p class="hint">L’email sert d’identifiant de connexion ; pour le changer, contactez un administrateur.</p>
+      <div class="acct__actions">
+        <button type="submit" class="btn btn-primary"><i data-lucide="save" aria-hidden="true"></i> Enregistrer</button>
+      </div>
+    </form>
+  </section>
+
+  {# --- Mot de passe --- #}
+  <section class="acct__panel" role="tabpanel" id="acct-p-password" aria-labelledby="acct-t-password"{% if tab != "password" %} hidden{% endif %}>
+    <form method="post" action="{% url 'core:password' %}" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next|default:request.get_full_path }}">
+      {{ f.password.non_field_errors }}
+      {% for field in f.password %}
+        <div class="field{% if field.errors %} field--error{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {{ field.errors }}
+        </div>
+      {% endfor %}
+      <div class="acct__actions">
+        <button type="submit" class="btn btn-primary"><i data-lucide="key-round" aria-hidden="true"></i> Modifier le mot de passe</button>
+      </div>
+    </form>
+  </section>
+
+  {# --- Suppression du compte --- #}
+  <section class="acct__panel" role="tabpanel" id="acct-p-delete" aria-labelledby="acct-t-delete"{% if tab != "delete" %} hidden{% endif %}>
+    <div class="acct__danger">
+      <i data-lucide="triangle-alert" aria-hidden="true"></i>
+      <div>
+        <strong>Supprimer définitivement mon compte</strong>
+        <p>Votre profil, vos inscriptions et vos billets seront supprimés. Cette action est irréversible.</p>
+      </div>
+    </div>
+    {% if f.deletion_blocker %}
+      <p class="acct__blocked" role="alert">{{ f.deletion_blocker }}</p>
+    {% else %}
+      <form method="post" action="{% url 'core:delete_account' %}" novalidate>
+        {% csrf_token %}
+        <div class="field">
+          <label for="acct-delete-password">Confirmez avec votre mot de passe</label>
+          <input class="ff-input" id="acct-delete-password" type="password" name="password" autocomplete="current-password" required>
+        </div>
+        <label class="check-field" for="acct-delete-confirm">
+          <input id="acct-delete-confirm" type="checkbox" name="confirm" value="1" required>
+          Je comprends que cette suppression est définitive.
+        </label>
+        <div class="acct__actions">
+          <button type="submit" class="btn btn-danger"><i data-lucide="trash-2" aria-hidden="true"></i> Supprimer mon compte</button>
+        </div>
+      </form>
+    {% endif %}
+  </section>
+</div>
+{% endwith %}

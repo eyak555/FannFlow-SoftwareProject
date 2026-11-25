@@ -5,25 +5,47 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ page_title|default:"FannFlow" }} — FannFlow{% endblock %}</title>
-  <meta name="description" content="FannFlow — plateforme de gestion des événements culturels">
+  <meta name="description" content="FannFlow — plateforme intelligente de gestion des événements culturels">
+  <script>document.documentElement.classList.add("js");</script>
   <link rel="icon" href="{% static 'core/img/logo.png' %}" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'core/css/fannflow.css' %}?v=7">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'core/css/fannflow.css' %}?v=8">
+  <link rel="stylesheet" href="{% static 'core/css/ui.css' %}?v=11">
   {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% if is_backoffice %}is-backoffice{% else %}is-frontoffice{% endif %}">
   <a class="skip-link" href="#contenu">Aller au contenu</a>
-  {% include "core/components/header.html" %}
-  <main id="contenu">
+
+  {% if is_backoffice %}
+    {# Back-office : barre latérale + barre supérieure #}
+    <div class="bo-shell">
+      {% include "core/components/backoffice_sidebar.html" %}
+      <div class="bo-main">
+        {% include "core/components/backoffice_topbar.html" %}
+  {% else %}
+    {# Front-office : site public #}
+    {% include "core/components/header.html" %}
+  {% endif %}
+
+  <main id="contenu" class="{% if is_backoffice %}bo-content{% else %}{% block main_class %}fo-content{% endblock %}{% endif %}" tabindex="-1">
     {% include "core/components/messages.html" %}
     {% if request.resolver_match.namespace == "registration_access" %}
       {% include "registration_access/components/page_navigation.html" %}
     {% endif %}
     {% block content %}{% endblock %}
   </main>
-  {% include "core/components/footer.html" %}
+
+  {% if is_backoffice %}
+      </div>
+    </div>
+  {% else %}
+    {% include "core/components/footer.html" %}
+  {% endif %}
+
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+  <script src="{% static 'core/js/app.js' %}?v=4" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

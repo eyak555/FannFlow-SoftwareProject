@@ -153,3 +153,42 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def initials(self):
         return (self.first_name[:1] + self.last_name[:1]).upper() or self.email[:1].upper()
+
+
+class AccountActivity(models.Model):
+    """Journal des opérations d'administration sur les comptes.
+
+    Alimenté par les vues d'administration (modification, changement de rôle,
+    activation, suppression). Les créations de comptes se lisent directement
+    dans ``User.created_at``.
+    """
+
+    class Action(models.TextChoices):
+        UPDATED = "updated", "Compte modifié"
+        ROLE_CHANGED = "role_changed", "Rôle modifié"
+        ACTIVATED = "activated", "Compte activé"
+        DEACTIVATED = "deactivated", "Compte désactivé"
+        DELETED = "deleted", "Compte supprimé"
+        PROFILE_UPDATED = "profile_updated", "Profil mis à jour"
+
+    action = models.CharField("action", max_length=20, choices=Action.choices)
+    actor = models.ForeignKey(
+        User, verbose_name="auteur", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="+",
+    )
+    target = models.ForeignKey(
+        User, verbose_name="compte concerné", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="account_activities",
+    )
+    # Nom conservé même après suppression du compte.
+    target_label = models.CharField("compte", max_length=210)
+    details = models.CharField("détails", max_length=255, blank=True)
+    created_at = models.DateTimeField("date", default=timezone.now, db_index=True)
+
+    class Meta:
+        verbose_name = "activité de compte"
+        verbose_name_plural = "activités de comptes"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_action_display()} — {self.target_label}"

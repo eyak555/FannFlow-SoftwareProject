@@ -1,56 +1,91 @@
 {% load static %}
-<header class="site-header">
-  <div class="nav-bar">
-    <div class="bar-inner nav-bar__inner">
-      <input class="nav-toggle" type="checkbox" id="nav-toggle">
-      <label class="nav-burger" for="nav-toggle">Menu</label>
+<header class="fo-header" data-header>
+  <div class="fo-header__inner">
+    <a class="fo-brand fo-brand--light" href="{% url 'core:home' %}" aria-label="FannFlow — Accueil">
+      <span class="fo-brand__mark"><img src="{% static 'core/img/logo.png' %}" alt="" width="34" height="34"></span>
+      <span class="fo-brand__name">Fann<b>Flow</b></span>
+    </a>
+
+    <button class="fo-burger" type="button" aria-expanded="false" aria-controls="fo-nav" data-nav-toggle>
+      <i data-lucide="menu" aria-hidden="true"></i>
+      <span class="visually-hidden">Ouvrir le menu</span>
+    </button>
+
+    <div class="fo-nav" id="fo-nav" data-nav>
       <nav aria-label="Navigation principale">
-        <ul class="nav-list">
-          <li class="nav-logo-item">
-            <a class="nav-logo" href="{% url 'core:home' %}" aria-label="Accueil FannFlow">
-              <img src="{% static 'core/img/logo.png' %}" alt="FannFlow">
-            </a>
+        <ul class="fo-nav__list">
+          <li>
+            <a class="fo-nav__link" href="{% url 'core:home' %}" {% if current_namespace == "core" and current_url_name == "home" %}aria-current="page"{% endif %}>Accueil</a>
           </li>
           <li>
-            <a href="{% url 'core:home' %}"
-               {% if request.resolver_match.app_name == "core" and request.resolver_match.url_name == "home" %}aria-current="page"{% endif %}>
-              Accueil
-            </a>
+            <a class="fo-nav__link" href="{% url 'core:events' %}" {% if current_url_name == "events" %}aria-current="page"{% endif %}>Événements</a>
           </li>
-          {% for module in fannflow_modules %}
+          <li class="fo-dropdown" data-dropdown>
+            <button class="fo-nav__link fo-dropdown__toggle" type="button" aria-expanded="false" aria-haspopup="true" data-dropdown-toggle>
+              Modules <i data-lucide="chevron-down" aria-hidden="true"></i>
+            </button>
+            <div class="fo-dropdown__menu" role="menu" data-dropdown-menu>
+              {% for module in fannflow_modules %}
+                {% if module.locked %}
+                  <span class="fo-dropdown__item is-locked" role="menuitem" aria-disabled="true">
+                    <span class="icon-badge icon-badge--sm"><i data-lucide="{{ module.icon }}" aria-hidden="true"></i></span>
+                    <span><strong>{{ module.title }}</strong><small>Réservé à l’équipe d’organisation</small></span>
+                  </span>
+                {% else %}
+                  <a class="fo-dropdown__item" role="menuitem" href="{{ module.href }}">
+                    <span class="icon-badge icon-badge--sm"><i data-lucide="{{ module.icon }}" aria-hidden="true"></i></span>
+                    <span><strong>{{ module.title }}</strong><small>{{ module.summary }}</small></span>
+                  </a>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </li>
+          <li>
+            <a class="fo-nav__link" href="{% url 'core:home' %}#fonctionnement">Comment ça marche</a>
+          </li>
+          {% if user.is_authenticated and not can_access_backoffice %}
             <li>
-              <a href="{% url module.app_name|add:':home' %}"
-                 {% if request.resolver_match.app_name == module.app_name and request.resolver_match.url_name != "login" %}aria-current="page"{% endif %}>
-                {{ module.title }}
-              </a>
+              <a class="fo-nav__link" href="{% url 'core:my_space' %}" {% if current_url_name == "my_space" %}aria-current="page"{% endif %}>Mon espace</a>
             </li>
-          {% endfor %}
+          {% endif %}
         </ul>
       </nav>
-      {% if user.is_authenticated %}
-        <div class="header-session">
-          {% if user.has_management_access %}
-            <a class="header-profile" href="{% url 'users_teams:home' %}" title="{{ user.email }}" aria-label="Espace de gestion de {{ user.get_full_name }}">
-              <span>Espace de gestion</span>
-              <strong aria-hidden="true">{{ user.initials }}</strong>
+
+      <div class="fo-actions">
+        {% if user.is_authenticated %}
+          {% if can_access_backoffice %}
+            <a class="btn btn-accent btn-sm" href="{% url 'users_teams:home' %}">
+              <i data-lucide="layout-dashboard" aria-hidden="true"></i> Espace de gestion
             </a>
-          {% else %}
-            <span class="header-profile" title="{{ user.email }}">
-              <span>{{ user.get_full_name }}</span>
-              <strong aria-hidden="true">{{ user.initials }}</strong>
-            </span>
           {% endif %}
+          {# Ouvre la fenêtre « Mon profil » (lien direct si JavaScript est désactivé) #}
+          <a class="fo-user fo-user--button" href="{% url 'core:profile' %}" data-dialog-open="profile-dialog" aria-haspopup="dialog" title="Mon profil">
+            <span class="fo-user__avatar" aria-hidden="true">{% if user.profile_picture %}<img src="{{ user.profile_picture.url }}" alt="">{% else %}{{ user.initials }}{% endif %}</span>
+            <span class="fo-user__name">{{ user.first_name }}</span>
+            <i class="fo-user__chev" data-lucide="chevron-down" aria-hidden="true"></i>
+          </a>
           <form method="post" action="{% url 'users_teams:logout' %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-secondary">Déconnexion</button>
+            <button type="submit" class="btn btn-ghost btn-sm" aria-label="Se déconnecter">
+              <i data-lucide="log-out" aria-hidden="true"></i><span class="fo-hide-md">Déconnexion</span>
+            </button>
           </form>
-        </div>
-      {% else %}
-        <a class="header-profile" href="{% url 'users_teams:login' %}" aria-label="Se connecter">
-          <span>Connexion</span>
-          <strong aria-hidden="true">A</strong>
-        </a>
-      {% endif %}
+        {% else %}
+          <a class="btn btn-ghost btn-sm" href="{% url 'users_teams:login' %}">
+            <i data-lucide="log-in" aria-hidden="true"></i> Connexion
+          </a>
+          <a class="btn btn-accent btn-sm" href="{% url 'users_teams:register' %}">Créer un compte</a>
+        {% endif %}
+      </div>
     </div>
   </div>
 </header>
+
+{% if account_forms and not current_url_name == "profile" %}
+  <dialog class="acct-dialog" id="profile-dialog" aria-labelledby="acct-title">
+    <button class="acct-dialog__close" type="button" data-dialog-close aria-label="Fermer la fenêtre">
+      <i data-lucide="x" aria-hidden="true"></i>
+    </button>
+    {% include "core/components/account_panels.html" %}
+  </dialog>
+{% endif %}

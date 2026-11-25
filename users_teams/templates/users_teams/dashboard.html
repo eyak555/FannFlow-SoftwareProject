@@ -1,106 +1,160 @@
 {% extends "core/base.html" %}
-{% load static %}
-
-{% block extra_css %}<link rel="stylesheet" href="{% static 'users_teams/css/users_teams.css' %}">{% endblock %}
 
 {% block content %}
-  <div class="module-workspace">
-    <aside class="module-sidebar" aria-label="Navigation de l’espace de gestion">
-      <a class="module-sidebar-home" href="{% url 'core:home' %}">
-        <span aria-hidden="true">←</span> Retour au site
+  {% with d=dashboard %}
+  <header class="dash-head">
+    <div>
+      <p class="eyebrow">{% if user.business_role %}{{ user.get_business_role_display }}{% else %}{{ user.get_role_display }}{% endif %} · {% now "l j F Y" %}</p>
+      <h1>Bonjour {{ user.first_name }}</h1>
+      <p>Voici l’état de vos événements, inscriptions et accès.</p>
+    </div>
+    <div class="dash-head__actions">
+      <a class="btn btn-ghost" href="{% url 'registration_access:attendance_check_in' %}"><i data-lucide="scan-line" aria-hidden="true"></i> Contrôle d’entrée</a>
+      <a class="btn btn-primary" href="{% url 'registration_access:entity_create' 'registrations' %}"><i data-lucide="plus" aria-hidden="true"></i> Nouvelle inscription</a>
+    </div>
+  </header>
+
+  {# ===== KPI ===== #}
+  <section class="kpi2-grid" aria-label="Indicateurs clés">
+    {% for kpi in d.kpis %}
+      <a class="kpi2" href="{{ kpi.url }}">
+        <div class="kpi2__top">{{ kpi.label }} <span class="icon-badge icon-badge--sm icon-badge--{{ kpi.tone }}"><i data-lucide="{{ kpi.icon }}" aria-hidden="true"></i></span></div>
+        <span class="kpi2__value">{{ kpi.value }}</span>
+        {% if kpi.hint %}<span class="kpi2__hint">{{ kpi.hint }}</span>{% endif %}
       </a>
-      <div class="module-sidebar-heading">
-        <span>{{ user.get_role_display }}{% if user.business_role %} · {{ user.get_business_role_display }}{% endif %}</span>
-        <strong>{{ module.title }}</strong>
+    {% endfor %}
+  </section>
+
+  <div class="dash-grid">
+    {# ===== Évolution des inscriptions ===== #}
+    <section class="panel span-8" aria-labelledby="chart-evolution-title">
+      <div class="panel__head">
+        <div><h2 id="chart-evolution-title">Évolution des inscriptions</h2><p>Nouvelles inscriptions par mois, 6 derniers mois</p></div>
+        <a class="panel__link" href="{% url 'registration_access:entity_list' 'registrations' %}">Détails <i data-lucide="arrow-right" aria-hidden="true"></i></a>
       </div>
-      <nav class="module-side-nav">
-        <a class="is-active" href="{% url 'users_teams:home' %}">
-          <span aria-hidden="true">⌂</span> Vue générale
-        </a>
-        {% if user.is_administrator %}
-          <a href="{% url 'users_teams:user_list' %}">
-            <span aria-hidden="true">•</span> Utilisateurs
-          </a>
-          <a href="{% url 'users_teams:user_create' %}">
-            <span aria-hidden="true">+</span> Nouvel utilisateur
-          </a>
-        {% endif %}
-      </nav>
-    </aside>
+      {% include "core/components/chart.html" with chart_id="chart-evolution" type="line" data=d.charts.evolution label="Inscriptions par mois" empty="Aucune inscription sur les six derniers mois." %}
+    </section>
 
-    <div class="module-workspace-content">
-      <header class="module-page-header">
-        <div>
-          <p class="eyebrow">Espace de gestion</p>
-          <h1>Bonjour {{ user.first_name }}</h1>
-          {% if page_intro %}<p class="lede">{{ page_intro }}</p>{% endif %}
+    {# ===== Alertes ===== #}
+    <section class="panel span-4" aria-labelledby="alerts-title">
+      <div class="panel__head"><div><h2 id="alerts-title">Notifications et alertes</h2><p>Points qui demandent votre attention</p></div>
+        {% if d.alerts %}<span class="tag tag--accent">{{ d.alerts|length }}</span>{% endif %}
+      </div>
+      {% if d.alerts %}
+        <ul class="list-clean">
+          {% for alert in d.alerts %}
+            <li>
+              <a class="alert-item" href="{{ alert.url }}">
+                <span class="icon-badge icon-badge--sm {% if alert.tone == 'danger' %}icon-badge--red{% elif alert.tone == 'warning' %}icon-badge--orange{% else %}icon-badge--blue{% endif %}"><i data-lucide="{{ alert.icon }}" aria-hidden="true"></i></span>
+                <span><strong>{{ alert.title }}</strong><span>{{ alert.text }}</span></span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="state state--compact">
+          <span class="icon-badge icon-badge--green"><i data-lucide="circle-check" aria-hidden="true"></i></span>
+          <h3>Tout est en ordre</h3>
+          <p>Aucune action urgente pour le moment.</p>
         </div>
-      </header>
+      {% endif %}
+    </section>
 
-      <section class="module-stat-grid" aria-label="Résumé des comptes">
-        <article class="module-stat">
-          <span>Utilisateurs</span>
-          <strong>{{ stats.total }}</strong>
-          <small>dont {{ stats.active }} actif(s)</small>
-        </article>
-        <article class="module-stat">
-          <span>Administrateurs</span>
-          <strong>{{ stats.admins }}</strong>
-          <small>accès complet</small>
-        </article>
-        <article class="module-stat module-stat--accent">
-          <span>Équipe d’organisation</span>
-          <strong>{{ stats.team }}</strong>
-          <small>directeurs et organisateurs</small>
-        </article>
+    {# ===== Répartitions ===== #}
+    <section class="panel span-4" aria-labelledby="chart-status-title">
+      <div class="panel__head"><div><h2 id="chart-status-title">Statut des inscriptions</h2><p>Répartition actuelle</p></div></div>
+      {% include "core/components/chart.html" with chart_id="chart-status" type="doughnut" data=d.charts.status label="Inscriptions par statut" size="sm" empty="Aucune inscription enregistrée." %}
+    </section>
+
+    <section class="panel span-4" aria-labelledby="chart-category-title">
+      <div class="panel__head"><div><h2 id="chart-category-title">Événements par catégorie</h2><p>Programme publié</p></div></div>
+      {% if d.charts.event_categories is None %}
+        <div class="state state--compact">
+          <span class="icon-badge"><i data-lucide="calendar-days" aria-hidden="true"></i></span>
+          <h3>Bientôt disponible</h3>
+          <p>Ce graphique s’affichera dès que le module Events &amp; Program enregistrera des événements.</p>
+        </div>
+      {% else %}
+        {% include "core/components/chart.html" with chart_id="chart-category" type="doughnut" data=d.charts.event_categories label="Événements par catégorie" size="sm" empty="Aucun événement enregistré." %}
+      {% endif %}
+    </section>
+
+    {% if d.sees_finance %}
+      <section class="panel span-4" aria-labelledby="chart-budget-title">
+        <div class="panel__head"><div><h2 id="chart-budget-title">Répartition du budget</h2><p>Budget prévisionnel par événement</p></div></div>
+        {% if d.charts.budget is None %}
+          <div class="state state--compact">
+            <span class="icon-badge icon-badge--orange"><i data-lucide="wallet" aria-hidden="true"></i></span>
+            <h3>Bientôt disponible</h3>
+            <p>Ce graphique s’affichera dès que le module Sponsors &amp; Finance enregistrera des budgets.</p>
+          </div>
+        {% else %}
+          {% include "core/components/chart.html" with chart_id="chart-budget" type="bar" data=d.charts.budget label="Budget prévu" unit="DT" size="sm" empty="Aucun budget enregistré." %}
+        {% endif %}
+      </section>
+    {% else %}
+      <section class="panel span-4" aria-labelledby="chart-tickets-title">
+        <div class="panel__head"><div><h2 id="chart-tickets-title">Billets par catégorie</h2><p>Standard, VIP et Groupe</p></div></div>
+        {% include "core/components/chart.html" with chart_id="chart-tickets" type="bar" data=d.charts.ticket_categories label="Billets par catégorie" size="sm" empty="Aucun billet émis." %}
+      </section>
+    {% endif %}
+
+    {# ===== Activité récente ===== #}
+    <section class="panel span-7" aria-labelledby="activity-title">
+      <div class="panel__head"><div><h2 id="activity-title">Activité récente</h2><p>Inscriptions, entrées{% if user.is_administrator %} et nouveaux comptes{% endif %}</p></div></div>
+      {% if d.activities %}
+        <ul class="list-clean">
+          {% for item in d.activities %}
+            <li>
+              <a class="activity-item" href="{{ item.url }}">
+                <span class="icon-badge icon-badge--sm"><i data-lucide="{{ item.icon }}" aria-hidden="true"></i></span>
+                <span><p>{{ item.text }}</p><small>{{ item.meta }}</small></span>
+                <time datetime="{{ item.when|date:'c' }}">{{ item.when|timesince }}</time>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="state state--compact">
+          <span class="icon-badge"><i data-lucide="inbox" aria-hidden="true"></i></span>
+          <h3>Aucune activité</h3>
+          <p>Les inscriptions et les entrées apparaîtront ici au fil de l’eau.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <div class="span-5" style="display:grid;gap:20px;align-content:start">
+      {# ===== Événements à venir ===== #}
+      <section class="panel" aria-labelledby="upcoming-title">
+        <div class="panel__head"><div><h2 id="upcoming-title">Événements à venir</h2></div>
+          <a class="panel__link" href="{% url 'events_program:home' %}">Programme <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+        </div>
+        {% if d.upcoming.items %}
+          {% for event in d.upcoming.items %}
+            <a class="event-row" href="{{ event.url|default:'#' }}">
+              <span class="event-row__date">{% if event.start %}<strong>{{ event.start|date:"d" }}</strong><small>{{ event.start|date:"M" }}</small>{% else %}<i data-lucide="calendar" aria-hidden="true"></i>{% endif %}</span>
+              <span><p>{{ event.title }}</p><span>{{ event.category|default:"" }}{% if event.location %} · {{ event.location }}{% endif %}</span></span>
+            </a>
+          {% endfor %}
+        {% else %}
+          {% include "core/components/events_state.html" with events=d.upcoming %}
+        {% endif %}
       </section>
 
-      <section class="module-content-grid">
-        <div class="module-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Gestion</p>
-              <h2>Fonctionnalités disponibles</h2>
-            </div>
-          </div>
-          <div class="module-entity-grid">
-            {% if user.is_administrator %}
-              <article class="module-entity-card">
-                <span class="entity-index" aria-hidden="true">01</span>
-                <div class="entity-card-content">
-                  <h3>Utilisateurs</h3>
-                  <p>Créer, consulter, modifier et supprimer les comptes (participants, administrateurs, directeurs, organisateurs).</p>
-                </div>
-                <div class="entity-actions">
-                  <a class="btn btn-secondary" href="{% url 'users_teams:user_list' %}">Ouvrir</a>
-                  <a class="btn btn-primary" href="{% url 'users_teams:user_create' %}">Ajouter</a>
-                </div>
-              </article>
-            {% endif %}
-            <article class="module-entity-card">
-              <span class="entity-index" aria-hidden="true">{% if user.is_administrator %}02{% else %}01{% endif %}</span>
-              <div class="entity-card-content">
-                <h3>Organisateurs d’événements</h3>
-                <p>Affectation des organisateurs aux événements : disponible lorsque le Module 2 (Events &amp; Program) fournira le modèle Événement.</p>
-              </div>
-            </article>
-          </div>
+      {# ===== Actions rapides (selon le rôle) ===== #}
+      <section class="panel" aria-labelledby="quick-title">
+        <div class="panel__head"><div><h2 id="quick-title">Actions rapides</h2></div></div>
+        <div class="quick-grid">
+          {% for action in d.quick_actions %}
+            <a class="quick-action" href="{{ action.url }}"><span class="icon-badge icon-badge--sm"><i data-lucide="{{ action.icon }}" aria-hidden="true"></i></span>{{ action.label }}</a>
+          {% endfor %}
         </div>
-
-        <aside class="module-panel module-info-panel" aria-label="Mon compte">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Mon compte</p>
-              <h2>{{ user.get_full_name }}</h2>
-            </div>
-          </div>
-          <div class="module-info-state">
-            {% include "users_teams/components/avatar.html" with person=user large=True %}
-            <p>{{ user.email }}</p>
-            <p>Dernière connexion : {{ user.last_login|date:"d/m/Y H:i"|default:"—" }}</p>
-          </div>
-        </aside>
       </section>
     </div>
   </div>
+  {% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 {% endblock %}

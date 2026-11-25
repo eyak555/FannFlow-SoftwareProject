@@ -1,0 +1,167 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  {% with d=admin %}
+
+  {# ===== En-tête ===== #}
+  <header class="adm-head">
+    <div>
+      <p class="adm-head__date"><i data-lucide="calendar" aria-hidden="true"></i> {% now "l j F Y" %}</p>
+      <h1>Tableau de bord</h1>
+      <p class="adm-head__lead"><strong>Bonjour, {{ user.first_name }}.</strong> Gérez les comptes, les rôles et l’équipe d’organisation de FannFlow.</p>
+    </div>
+    <div class="adm-head__actions">
+      <a class="btn btn-ghost" href="{% url 'users_teams:user_list' %}"><i data-lucide="search" aria-hidden="true"></i> Rechercher</a>
+      <a class="btn btn-primary" href="{% url 'users_teams:user_create' %}"><i data-lucide="user-plus" aria-hidden="true"></i> Nouvel utilisateur</a>
+    </div>
+  </header>
+
+  {# ===== KPI ===== #}
+  <section class="adm-kpis" aria-label="Statistiques des comptes">
+    {% for kpi in d.kpis %}
+      <a class="adm-kpi" href="{{ kpi.url }}">
+        <div class="adm-kpi__top">
+          <span class="icon-badge icon-badge--sm icon-badge--{{ kpi.tone }}"><i data-lucide="{{ kpi.icon }}" aria-hidden="true"></i></span>
+          <span class="adm-kpi__label">{{ kpi.label }}</span>
+        </div>
+        <strong class="adm-kpi__value">{{ kpi.value }}</strong>
+        {% if "progress" in kpi %}
+          <span class="adm-kpi__bar adm-kpi__bar--{{ kpi.tone }}" role="img" aria-label="{{ kpi.progress }} %"><span style="width: {{ kpi.progress }}%"></span></span>
+        {% endif %}
+        <span class="adm-kpi__hint">
+          {% if kpi.trend == "up" %}<i class="adm-kpi__trend" data-lucide="trending-up" aria-hidden="true"></i>{% endif %}
+          {{ kpi.hint }}
+        </span>
+      </a>
+    {% endfor %}
+  </section>
+
+  <div class="dash-grid">
+    {# ===== Analytique ===== #}
+    <section class="panel span-4" aria-labelledby="chart-roles-title">
+      <div class="panel__head"><div><h2 id="chart-roles-title">Répartition par rôle</h2><p>Tous les comptes</p></div></div>
+      {% include "core/components/chart.html" with chart_id="chart-roles" type="doughnut" data=d.charts.roles label="Utilisateurs par rôle" size="sm" empty="Aucun utilisateur." %}
+    </section>
+    <section class="panel span-4" aria-labelledby="chart-status-title">
+      <div class="panel__head"><div><h2 id="chart-status-title">Comptes actifs / inactifs</h2><p>Statut de connexion autorisée</p></div></div>
+      {% include "core/components/chart.html" with chart_id="chart-account-status" type="doughnut" data=d.charts.status label="Comptes actifs et inactifs" size="sm" empty="Aucun utilisateur." %}
+    </section>
+    <section class="panel span-4" aria-labelledby="chart-evolution-title">
+      <div class="panel__head"><div><h2 id="chart-evolution-title">Nouveaux comptes</h2><p>Par mois, 12 derniers mois</p></div></div>
+      {% include "core/components/chart.html" with chart_id="chart-accounts" type="bar" data=d.charts.evolution label="Comptes créés par mois" size="sm" empty="Aucun compte créé sur la période." %}
+    </section>
+
+    {# ===== Gestion rapide ===== #}
+    <section class="span-12" aria-labelledby="manage-title">
+      <h2 id="manage-title" class="adm-section-title">Gestion rapide</h2>
+      <div class="adm-manage">
+        <article class="adm-card">
+          <span class="icon-badge icon-badge--blue"><i data-lucide="users" aria-hidden="true"></i></span>
+          <h3>Gestion des utilisateurs</h3>
+          <p>Consultez tous les comptes, retrouvez-les avec la recherche avancée (rôle, rôle métier, statut, période de création, dernière connexion), puis modifiez-les ou supprimez-les.</p>
+          <div class="adm-card__actions">
+            <a class="btn btn-primary btn-sm" href="{% url 'users_teams:user_list' %}"><i data-lucide="list" aria-hidden="true"></i> Voir les utilisateurs</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'users_teams:user_list' %}?avance=1"><i data-lucide="sliders-horizontal" aria-hidden="true"></i> Recherche avancée</a>
+          </div>
+        </article>
+        <article class="adm-card">
+          <span class="icon-badge icon-badge--teal"><i data-lucide="user-plus" aria-hidden="true"></i></span>
+          <h3>Création d’utilisateurs</h3>
+          <p>Créez un compte participant ou administrateur, et attribuez un rôle métier (directeur, organisateur) selon les permissions existantes.</p>
+          <div class="adm-card__actions">
+            <a class="btn btn-primary btn-sm" href="{% url 'users_teams:user_create' %}?role=participant"><i data-lucide="user-round-plus" aria-hidden="true"></i> Participant</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'users_teams:user_create' %}?role=administrateur"><i data-lucide="shield-plus" aria-hidden="true"></i> Administrateur</a>
+          </div>
+        </article>
+        <article class="adm-card">
+          <span class="icon-badge icon-badge--orange"><i data-lucide="calendar-check" aria-hidden="true"></i></span>
+          <h3>Organisateurs d’événements</h3>
+          <p>Retrouvez les directeurs et organisateurs et leurs affectations. L’affectation aux événements s’activera avec le module Events &amp; Program.</p>
+          <div class="adm-card__actions">
+            <a class="btn btn-primary btn-sm" href="{% url 'users_teams:organizers' %}"><i data-lucide="briefcase" aria-hidden="true"></i> Voir l’équipe</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'users_teams:user_create' %}?role=participant&amp;business_role=organisateur"><i data-lucide="plus" aria-hidden="true"></i> Ajouter</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    {# ===== Activité récente ===== #}
+    <section class="panel span-8" aria-labelledby="activity-title">
+      <div class="panel__head">
+        <div><h2 id="activity-title">Activité récente</h2><p>Créations, modifications, changements de rôle et de statut</p></div>
+        <a class="panel__link" href="{% url 'users_teams:user_list' %}?sort=-created_at">Tous les comptes <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+      </div>
+      {% if d.activities %}
+        <div class="table-scroll">
+          <table class="adm-table">
+            <caption class="visually-hidden">Activité récente sur les comptes</caption>
+            <thead><tr><th scope="col">Opération</th><th scope="col">Compte</th><th scope="col">Détails</th><th scope="col">Date</th></tr></thead>
+            <tbody>
+              {% for item in d.activities %}
+                <tr>
+                  <td><span class="adm-op"><span class="icon-badge icon-badge--sm icon-badge--{{ item.tone }}"><i data-lucide="{{ item.icon }}" aria-hidden="true"></i></span>{{ item.label }}</span></td>
+                  <td>{% if item.url %}<a href="{{ item.url }}">{{ item.target }}</a>{% else %}{{ item.target }}{% endif %}</td>
+                  <td class="text-muted">{{ item.details|default:"—" }}{% if item.actor %} · par {{ item.actor }}{% endif %}</td>
+                  <td><time datetime="{{ item.when|date:'c' }}" title="{{ item.when|date:'d/m/Y H:i' }}">il y a {{ item.when|timesince }}</time></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="state state--compact">
+          <span class="icon-badge"><i data-lucide="inbox" aria-hidden="true"></i></span>
+          <h3>Aucune activité</h3>
+          <p>Les créations et modifications de comptes apparaîtront ici.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {# ===== Notifications + profil ===== #}
+    <div class="span-4 adm-side">
+      <section class="panel" aria-labelledby="notif-title" id="notifications">
+        <div class="panel__head"><div><h2 id="notif-title">Notifications</h2><p>À surveiller</p></div>
+          {% if d.notifications %}<span class="tag tag--accent">{{ d.notifications|length }}</span>{% endif %}
+        </div>
+        {% if d.notifications %}
+          <ul class="list-clean">
+            {% for n in d.notifications %}
+              <li><a class="alert-item" href="{{ n.url }}">
+                <span class="icon-badge icon-badge--sm icon-badge--{{ n.tone }}"><i data-lucide="{{ n.icon }}" aria-hidden="true"></i></span>
+                <span><strong>{{ n.title }}</strong><span>{{ n.text }}</span></span>
+              </a></li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="state state--compact">
+            <span class="icon-badge icon-badge--green"><i data-lucide="circle-check" aria-hidden="true"></i></span>
+            <h3>Tout est en ordre</h3>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="panel adm-profile" aria-labelledby="profile-title">
+        <div class="adm-profile__id">
+          {% include "users_teams/components/avatar.html" with person=user %}
+          <div>
+            <h2 id="profile-title">{{ user.get_full_name }}</h2>
+            <span class="tag tag--teal"><i data-lucide="shield-check" aria-hidden="true"></i> {{ user.get_role_display }}{% if user.business_role %} · {{ user.get_business_role_display }}{% endif %}</span>
+          </div>
+        </div>
+        <dl class="adm-profile__meta">
+          <div><dt>Dernière connexion</dt><dd>{{ user.last_login|date:"d/m/Y H:i"|default:"—" }}</dd></div>
+          <div><dt>Membre depuis</dt><dd>{{ user.created_at|date:"F Y" }}</dd></div>
+        </dl>
+        <div class="adm-card__actions">
+          <a class="btn btn-ghost btn-sm" href="{% url 'users_teams:profile' %}"><i data-lucide="user-cog" aria-hidden="true"></i> Paramètres du profil</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'users_teams:settings' %}"><i data-lucide="key-round" aria-hidden="true"></i> Sécurité</a>
+        </div>
+      </section>
+    </div>
+  </div>
+  {% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+{% endblock %}

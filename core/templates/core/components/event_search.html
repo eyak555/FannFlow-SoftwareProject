@@ -1,0 +1,34 @@
+{% comment %}
+Barre de recherche des événements (accueil et catalogue).
+Paramètre : search = {venues, periods, filters}. Envoie vers le catalogue public.
+{% endcomment %}
+<form class="event-search" method="get" action="{% url 'core:events' %}" role="search" aria-label="Rechercher un événement">
+  <label class="event-search__field event-search__field--text">
+    <span class="visually-hidden">Mot clé</span>
+    <i data-lucide="search" aria-hidden="true"></i>
+    <input type="search" name="q" value="{{ search.filters.q }}" placeholder="Mot clé : concert, théâtre, expo…">
+  </label>
+  <label class="event-search__field">
+    <span class="visually-hidden">Salle</span>
+    <i data-lucide="map-pin" aria-hidden="true"></i>
+    <select name="salle">
+      <option value="">Toutes les salles</option>
+      {% for venue in search.venues %}
+        <option value="{{ venue }}"{% if search.filters.salle == venue %} selected{% endif %}>{{ venue }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="event-search__field">
+    <span class="visually-hidden">Date</span>
+    <i data-lucide="calendar-days" aria-hidden="true"></i>
+    <select name="date">
+      <option value="">Toutes les dates</option>
+      {% for value, label in search.periods %}
+        <option value="{{ value }}"{% if search.filters.date == value %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button class="event-search__submit" type="submit">
+    <i data-lucide="search" aria-hidden="true"></i> Rechercher
+  </button>
+</form>

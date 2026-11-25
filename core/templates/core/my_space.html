@@ -1,0 +1,63 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-hero">
+    <p class="eyebrow">Espace participant</p>
+    <h1>Bonjour {{ user.first_name }}</h1>
+    <p>Retrouvez vos inscriptions et présentez le QR code de votre billet à l’entrée.</p>
+  </header>
+
+  <section class="kpi2-grid" aria-label="Résumé">
+    <div class="kpi2"><div class="kpi2__top">Inscriptions <span class="icon-badge icon-badge--sm icon-badge--blue"><i data-lucide="clipboard-list" aria-hidden="true"></i></span></div><span class="kpi2__value">{{ stats.total }}</span></div>
+    <div class="kpi2"><div class="kpi2__top">Confirmées <span class="icon-badge icon-badge--sm icon-badge--green"><i data-lucide="circle-check" aria-hidden="true"></i></span></div><span class="kpi2__value">{{ stats.confirmed }}</span></div>
+    <div class="kpi2"><div class="kpi2__top">Billets prêts <span class="icon-badge icon-badge--sm icon-badge--orange"><i data-lucide="qr-code" aria-hidden="true"></i></span></div><span class="kpi2__value">{{ stats.ready }}</span></div>
+  </section>
+
+  <section aria-labelledby="mes-inscriptions">
+    <h2 id="mes-inscriptions" class="visually-hidden">Mes inscriptions</h2>
+    {% if items %}
+      <div class="ticket-list">
+        {% for item in items %}
+          {% with registration=item.registration %}
+            <article class="card ticket-card">
+              <div>
+                <h3>Événement n° {{ registration.event_id }}</h3>
+                <p class="text-muted" style="margin:0">Inscrit·e le {{ registration.registration_date|date:"j F Y à H:i" }}</p>
+                <div class="ticket-card__meta">
+                  <span class="status-pill {% if registration.status == 'confirmed' %}status-pill--success{% elif registration.status == 'cancelled' %}status-pill--danger{% else %}status-pill--pending{% endif %}"><span></span>{{ registration.get_status_display }}</span>
+                  <span class="status-pill {% if registration.payment_status == 'paid' %}status-pill--success{% elif registration.payment_status == 'refunded' %}status-pill--neutral{% else %}status-pill--pending{% endif %}"><span></span>Paiement : {{ registration.get_payment_status_display }}</span>
+                  <span class="tag">{{ registration.get_ticket_type_display }}</span>
+                </div>
+              </div>
+              <div class="ticket-card__codes">
+                {% for entry in item.tickets %}
+                  {% if entry.ready %}
+                    <figure class="ticket-qr2" style="margin:0">
+                      <img src="{{ entry.qr }}" alt="QR code du billet {{ entry.ticket.code }}">
+                      <small>{{ entry.ticket.code }}</small>
+                    </figure>
+                  {% else %}
+                    <div class="ticket-qr2">
+                      <span class="icon-badge icon-badge--orange"><i data-lucide="hourglass" aria-hidden="true"></i></span>
+                      <small>{{ entry.ticket.code }}</small>
+                      <small>{{ entry.ticket.get_status_display }}</small>
+                    </div>
+                  {% endif %}
+                {% empty %}
+                  <span class="text-muted">Billet en préparation</span>
+                {% endfor %}
+              </div>
+            </article>
+          {% endwith %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="state">
+        <span class="icon-badge"><i data-lucide="ticket" aria-hidden="true"></i></span>
+        <h3>Aucune inscription pour le moment</h3>
+        <p>Parcourez le programme pour trouver votre prochain événement.</p>
+        <a class="btn btn-primary" href="{% url 'core:events' %}" style="margin-top:8px">Découvrir les événements</a>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

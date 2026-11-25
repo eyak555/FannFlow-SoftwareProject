@@ -1,10 +1,13 @@
 from django import forms
 from django.contrib.auth import authenticate, password_validation
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.utils import timezone
 
 from core.forms import FannFlowFormMixin, FannFlowModelForm
 from .models import User
+
+# Le sélecteur de fichiers ne propose que les formats acceptés par le modèle.
+PICTURE_WIDGET = forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/webp"})
 
 PROFILE_FIELDS = ["first_name", "last_name", "email", "phone", "birth_date", "profile_picture"]
 ADMIN_FIELDS = PROFILE_FIELDS + ["role", "business_role", "status"]
@@ -31,6 +34,7 @@ class UserFormBase(FannFlowModelForm):
         fields = ADMIN_FIELDS
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "profile_picture": PICTURE_WIDGET,
             "email": forms.EmailInput(attrs={"autocomplete": "email"}),
         }
 
@@ -142,3 +146,25 @@ class LoginForm(FannFlowFormMixin, AuthenticationForm):
                 raise self.get_invalid_login_error()
             self.confirm_login_allowed(self.user_cache)
         return self.cleaned_data
+
+
+class ProfileForm(FannFlowModelForm):
+    """Mon profil : informations personnelles uniquement (ni email, ni rôle, ni statut)."""
+
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "phone", "birth_date", "profile_picture"]
+        widgets = {
+            "birth_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "profile_picture": PICTURE_WIDGET,
+        }
+
+    def clean_birth_date(self):
+        birth_date = self.cleaned_data.get("birth_date")
+        if birth_date and birth_date >= timezone.localdate():
+            raise forms.ValidationError("La date de naissance doit être dans le passé.")
+        return birth_date
+
+
+class PasswordSettingsForm(FannFlowFormMixin, PasswordChangeForm):
+    """Paramètres : changement de mot de passe (validateurs Django)."""

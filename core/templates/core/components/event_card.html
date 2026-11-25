@@ -1,0 +1,28 @@
+{# Carte événement réutilisable. Paramètre : event (dict issu de core.services). #}
+<article class="event-card">
+  <div class="event-card__media">
+    {% if event.image %}
+      <img src="{{ event.image }}" alt="" loading="lazy">
+    {% else %}
+      <div class="event-card__placeholder" aria-hidden="true"><i data-lucide="calendar-days"></i></div>
+    {% endif %}
+    {% if event.category %}<span class="tag">{{ event.category }}</span>{% endif %}
+    {% if event.start %}
+      <span class="event-card__date" aria-hidden="true">
+        <strong>{{ event.start|date:"d" }}</strong>
+        <small>{{ event.start|date:"M" }}</small>
+      </span>
+    {% endif %}
+  </div>
+  <div class="event-card__body">
+    <h3>{{ event.title }}</h3>
+    <ul class="event-card__meta">
+      {% if event.start %}<li><i data-lucide="calendar" aria-hidden="true"></i> <time datetime="{{ event.start|date:'c' }}">{{ event.start|date:"l j F Y" }}</time></li>{% endif %}
+      {% if event.location %}<li><i data-lucide="map-pin" aria-hidden="true"></i> {{ event.location }}</li>{% endif %}
+      {% if event.event_type %}<li><i data-lucide="tag" aria-hidden="true"></i> {{ event.event_type }}</li>{% endif %}
+    </ul>
+    {% if event.url %}
+      <a class="btn btn-ghost btn-sm" href="{{ event.url }}">Voir les détails <i data-lucide="arrow-right" aria-hidden="true"></i><span class="visually-hidden"> de {{ event.title }}</span></a>
+    {% endif %}
+  </div>
+</article>

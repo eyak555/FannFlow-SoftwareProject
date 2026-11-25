@@ -1,0 +1,98 @@
+{% comment %}
+Illustration originale : un public réuni devant une scène.
+Les silhouettes ont des tons de peau variés ; « color » colore le buste, « fill » le visage.
+{% endcomment %}
+<svg class="crowd-art" viewBox="0 0 560 380" role="img" aria-labelledby="crowd-art-title">
+  <title id="crowd-art-title">Illustration : un public réuni devant une scène illuminée</title>
+  <defs>
+    <linearGradient id="ca-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#13294a"/>
+      <stop offset="1" stop-color="#1E3A5F"/>
+    </linearGradient>
+    <linearGradient id="ca-beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E6A23C" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#E6A23C" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="ca-frame"><rect width="560" height="380" rx="24"/></clipPath>
+    <symbol id="ca-person" viewBox="-30 -30 60 75" overflow="visible">
+      <path d="M-27 45 C-27 14 -15 6 0 6 C15 6 27 14 27 45 Z" fill="currentColor"/>
+      <circle cx="0" cy="-10" r="14"/>
+    </symbol>
+    <symbol id="ca-cheer" viewBox="-30 -30 60 75" overflow="visible">
+      <path d="M14 14 L30 -26" stroke="currentColor" stroke-width="9" stroke-linecap="round" fill="none"/>
+      <path d="M-27 45 C-27 14 -15 6 0 6 C15 6 27 14 27 45 Z" fill="currentColor"/>
+      <circle cx="0" cy="-10" r="14"/>
+      <circle cx="31" cy="-30" r="6"/>
+    </symbol>
+  </defs>
+
+  <g clip-path="url(#ca-frame)">
+    <rect width="560" height="380" fill="url(#ca-sky)"/>
+
+    {# Guirlande lumineuse #}
+    <path d="M0 34 Q140 84 280 40 T560 38" fill="none" stroke="#ffffff" stroke-opacity=".25" stroke-width="2"/>
+    <g class="crowd-art__lights">
+      <circle cx="40" cy="44" r="5" fill="#E6A23C"/><circle cx="95" cy="58" r="5" fill="#7fd1c0"/>
+      <circle cx="150" cy="64" r="5" fill="#f2c66d"/><circle cx="205" cy="58" r="5" fill="#E6A23C"/>
+      <circle cx="260" cy="44" r="5" fill="#7fd1c0"/><circle cx="315" cy="38" r="5" fill="#f2c66d"/>
+      <circle cx="370" cy="44" r="5" fill="#E6A23C"/><circle cx="425" cy="52" r="5" fill="#7fd1c0"/>
+      <circle cx="480" cy="50" r="5" fill="#f2c66d"/><circle cx="530" cy="42" r="5" fill="#E6A23C"/>
+    </g>
+
+    {# Faisceaux des projecteurs #}
+    <polygon points="170,0 230,210 330,210" fill="url(#ca-beam)"/>
+    <polygon points="390,0 230,210 330,210" fill="url(#ca-beam)"/>
+
+    {# Scène #}
+    <rect x="120" y="200" width="320" height="22" rx="4" fill="#0f2139"/>
+    <rect x="120" y="196" width="320" height="6" rx="3" fill="#E6A23C"/>
+    {# Artiste au micro #}
+    <g transform="translate(280 150)">
+      <path d="M-20 48 C-20 20 -10 14 0 14 C10 14 20 20 20 48 Z" fill="#E6A23C"/>
+      <circle cx="0" cy="0" r="12" fill="#A9714B"/>
+      <path d="M14 22 L26 -4" stroke="#E6A23C" stroke-width="7" stroke-linecap="round"/>
+      <line x1="-6" y1="12" x2="-18" y2="48" stroke="#cbd5e1" stroke-width="2"/>
+      <circle cx="-5" cy="10" r="4" fill="#cbd5e1"/>
+    </g>
+
+    {# Notes de musique #}
+    <g class="crowd-art__notes" fill="#f2c66d" font-family="Poppins, sans-serif" font-size="26">
+      <text x="330" y="130">♪</text><text x="205" y="112" font-size="20">♫</text><text x="360" y="92" font-size="18">♪</text>
+    </g>
+
+    {# Public : trois rangées, tons de peau variés #}
+    <g>
+      <use href="#ca-person" x="10" y="232" width="56" height="70" color="#2E7D8A" fill="#D9A27C"/>
+      <use href="#ca-cheer" x="70" y="226" width="56" height="70" color="#3c5a85" fill="#F1C9A5"/>
+      <use href="#ca-person" x="130" y="234" width="56" height="70" color="#8a5a9e" fill="#6E4630"/>
+      <use href="#ca-person" x="190" y="230" width="56" height="70" color="#c0703a" fill="#E8B796"/>
+      <use href="#ca-cheer" x="300" y="228" width="56" height="70" color="#2E7D8A" fill="#A9714B"/>
+      <use href="#ca-person" x="360" y="234" width="56" height="70" color="#3c5a85" fill="#D9A27C"/>
+      <use href="#ca-person" x="420" y="230" width="56" height="70" color="#b4485a" fill="#F1C9A5"/>
+      <use href="#ca-cheer" x="480" y="226" width="56" height="70" color="#c0703a" fill="#6E4630"/>
+    </g>
+    <g>
+      <use href="#ca-cheer" x="-10" y="272" width="72" height="90" color="#E6A23C" fill="#A9714B"/>
+      <use href="#ca-person" x="62" y="282" width="72" height="90" color="#1baf7a" fill="#F1C9A5"/>
+      <use href="#ca-person" x="136" y="276" width="72" height="90" color="#2a78d6" fill="#D9A27C"/>
+      <use href="#ca-cheer" x="210" y="270" width="72" height="90" color="#e87ba4" fill="#6E4630"/>
+      <use href="#ca-person" x="284" y="280" width="72" height="90" color="#6250d6" fill="#E8B796"/>
+      <use href="#ca-person" x="358" y="276" width="72" height="90" color="#E6A23C" fill="#A9714B"/>
+      <use href="#ca-cheer" x="432" y="272" width="72" height="90" color="#2E7D8A" fill="#F1C9A5"/>
+      <use href="#ca-person" x="500" y="282" width="72" height="90" color="#b4485a" fill="#D9A27C"/>
+    </g>
+    <g>
+      <use href="#ca-person" x="20" y="322" width="90" height="112" color="#1E3A5F" fill="#E8B796"/>
+      <use href="#ca-cheer" x="118" y="316" width="90" height="112" color="#c0703a" fill="#6E4630"/>
+      <use href="#ca-person" x="230" y="324" width="90" height="112" color="#2E7D8A" fill="#F1C9A5"/>
+      <use href="#ca-person" x="340" y="318" width="90" height="112" color="#8a5a9e" fill="#A9714B"/>
+      <use href="#ca-cheer" x="452" y="322" width="90" height="112" color="#1E3A5F" fill="#D9A27C"/>
+    </g>
+
+    {# Petits cœurs #}
+    <g class="crowd-art__hearts" fill="#e87ba4">
+      <path d="M100 170 c-6 -8 -18 -2 -12 8 l12 10 l12 -10 c6 -10 -6 -16 -12 -8z"/>
+      <path d="M470 150 c-5 -6 -14 -2 -10 6 l10 8 l10 -8 c4 -8 -5 -12 -10 -6z"/>
+    </g>
+  </g>
+</svg>

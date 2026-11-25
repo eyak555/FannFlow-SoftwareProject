@@ -1,0 +1,43 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-hero">
+    <p class="eyebrow">Programme</p>
+    <h1>Événements à venir</h1>
+    <p>Découvrez les événements culturels publiés sur FannFlow et réservez votre place.</p>
+  </header>
+
+  <div class="event-search-wrap">{% include "core/components/event_search.html" %}</div>
+
+  {% if categories %}
+    <nav class="filter-bar" aria-label="Filtrer par catégorie">
+      <a class="chip" href="{% url 'core:events' %}" {% if not selected_category %}aria-current="true"{% endif %}>Toutes</a>
+      {% for category in categories %}
+        <a class="chip" href="?categorie={{ category|urlencode }}" {% if category == selected_category %}aria-current="true"{% endif %}>{{ category }}</a>
+      {% endfor %}
+    </nav>
+  {% endif %}
+
+  {% if events.items %}
+    {% if has_filters %}<p class="text-muted">{{ events.items|length }} événement{{ events.items|length|pluralize }} trouvé{{ events.items|length|pluralize }}.</p>{% endif %}
+    <div class="event-grid">
+      {% for event in events.items %}
+        {% include "core/components/event_card.html" %}
+      {% endfor %}
+    </div>
+  {% elif has_filters and unfiltered_count %}
+    <div class="state">
+      <span class="icon-badge icon-badge--orange"><i data-lucide="search-x" aria-hidden="true"></i></span>
+      <h3>Aucun événement ne correspond à votre recherche</h3>
+      <p>Essayez un autre mot clé, une autre salle ou une autre période.</p>
+      <a class="btn btn-ghost" href="{% url 'core:events' %}" style="margin-top:8px"><i data-lucide="rotate-ccw" aria-hidden="true"></i> Effacer la recherche</a>
+    </div>
+  {% else %}
+    {% include "core/components/events_state.html" %}
+    {% if organize_url %}
+      <p style="text-align:center;margin-top:20px">
+        <a class="btn btn-primary" href="{{ organize_url }}"><i data-lucide="calendar-plus" aria-hidden="true"></i> Organiser un événement</a>
+      </p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

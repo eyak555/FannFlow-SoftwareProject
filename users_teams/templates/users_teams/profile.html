@@ -1,0 +1,21 @@
+{% extends "core/layouts/form.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'users_teams/css/users_teams.css' %}">{% endblock %}
+
+{% block form_fields %}
+  <div class="pref-identity">
+    {% include "users_teams/components/avatar.html" with person=user large=True %}
+    <div>
+      <strong>{{ user.get_full_name }}</strong>
+      <span class="tag tag--teal">{{ user.get_role_display }}{% if user.business_role %} · {{ user.get_business_role_display }}{% endif %}</span>
+      <p class="hint">Identifiant de connexion : {{ user.email }}</p>
+    </div>
+  </div>
+  {{ block.super }}
+{% endblock %}
+
+{% block form_actions %}
+  <button type="submit" class="btn btn-primary"><i data-lucide="save" aria-hidden="true"></i> Enregistrer</button>
+  <a class="btn btn-ghost" href="{% url 'users_teams:settings' %}"><i data-lucide="key-round" aria-hidden="true"></i> Changer le mot de passe</a>
+{% endblock %}

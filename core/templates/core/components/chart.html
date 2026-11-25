@@ -1,0 +1,22 @@
+{% comment %}
+Graphique réutilisable avec états chargement / vide / erreur et tableau accessible.
+   Paramètres : chart_id, type (bar|line|doughnut), data (liste {label, value}),
+   label, empty (texte d'état vide), unit, size ("sm" optionnel).
+{% endcomment %}
+{{ data|json_script:chart_id }}
+<div class="chart-box{% if size %} chart-box--{{ size }}{% endif %}" data-chart="{{ type }}" data-chart-source="{{ chart_id }}" data-state="loading"
+     data-label="{{ label }}" data-empty="{{ empty|default:'Aucune donnée pour le moment.' }}" data-unit="{{ unit|default:'' }}">
+  <canvas role="img" aria-label="{{ label }}"></canvas>
+  <div class="chart-box__state" data-chart-state aria-live="polite"><span class="visually-hidden">Chargement du graphique…</span></div>
+</div>
+{% if data %}
+  <details class="chart-table">
+    <summary>Voir les données</summary>
+    <table>
+      <thead><tr><th scope="col">Libellé</th><th scope="col">Valeur</th></tr></thead>
+      <tbody>
+        {% for row in data %}<tr><td>{{ row.label }}</td><td>{{ row.value }}{% if unit %} {{ unit }}{% endif %}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </details>
+{% endif %}

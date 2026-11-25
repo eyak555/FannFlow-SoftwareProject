@@ -1,61 +1,351 @@
 {% extends "core/base.html" %}
 
+{% block main_class %}fo-content fo-content--full{% endblock %}
+
 {% block content %}
-  <section class="overview-hero">
-    <div class="overview-hero__copy">
-      <p class="eyebrow">Plateforme culturelle intelligente</p>
-      <h1>Créer, organiser et vivre les événements culturels</h1>
-      <p>FannFlow rassemble les équipes, le programme, les inscriptions, les ressources, les financements et la communication dans un seul espace.</p>
-      <div class="overview-actions">
-        <a class="btn btn-primary" href="{% url 'events_program:home' %}">Découvrir les événements</a>
-        <a class="btn btn-secondary" href="{% url 'users_teams:login' %}">Se connecter</a>
+  {# ===== Hero ===== #}
+  <section class="hero2" aria-labelledby="hero-title">
+    <div class="container hero2__grid">
+      <div class="hero2__copy">
+        {% if user.is_authenticated %}
+          <p class="hero2__hello"><span aria-hidden="true">👋</span> Bonjour {{ user.first_name }}, ravi de vous revoir !</p>
+        {% else %}
+          <p class="eyebrow eyebrow--pill"><i data-lucide="sparkles" aria-hidden="true"></i> Plateforme culturelle intelligente</p>
+        {% endif %}
+        <h1 id="hero-title">Orchestrez vos événements culturels, <em>du programme à l’entrée</em>.</h1>
+        <p class="hero2__lead">Derrière chaque concert, chaque exposition, chaque festival, il y a des femmes et des hommes passionnés. FannFlow les réunit dans un seul espace — pour des équipes mieux coordonnées et des publics mieux accueillis.</p>
+        <div class="hero2__actions">
+          <a class="btn btn-primary btn-lg" href="{% url 'core:events' %}">
+            <i data-lucide="calendar-search" aria-hidden="true"></i> Découvrir les événements
+          </a>
+          {% if organize_url %}
+            <a class="btn btn-ghost btn-lg" href="{{ organize_url }}">
+              <i data-lucide="calendar-plus" aria-hidden="true"></i> Organiser un événement
+            </a>
+          {% else %}
+            <a class="btn btn-ghost btn-lg" href="{% url 'core:my_space' %}">
+              <i data-lucide="ticket" aria-hidden="true"></i> Mes billets
+            </a>
+          {% endif %}
+        </div>
+        <ul class="hero2__proof">
+          <li><i data-lucide="qr-code" aria-hidden="true"></i> Billets QR sécurisés</li>
+          <li><i data-lucide="shield-check" aria-hidden="true"></i> Accès par rôle</li>
+          <li><i data-lucide="activity" aria-hidden="true"></i> Suivi en temps réel</li>
+        </ul>
       </div>
-    </div>
-    <div class="overview-hero__visual" aria-hidden="true">
-      <span class="visual-ring visual-ring--one"></span>
-      <span class="visual-ring visual-ring--two"></span>
-      <span class="visual-mark">F</span>
-    </div>
-  </section>
 
-  <section class="overview-section" aria-labelledby="overview-domains">
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">Tout votre événement</p>
-        <h2 id="overview-domains">Un espace pour chaque besoin</h2>
-      </div>
-    </div>
-    <div class="overview-domain-grid">
-      {% for item in fannflow_modules %}
-        <a class="overview-domain" href="{% url item.app_name|add:':home' %}">
-          <span aria-hidden="true">•</span>
-          <div>
-            <h3>{{ item.title }}</h3>
-            <p>{{ item.summary }}</p>
+      {# Aperçu du tableau de bord : chiffres réels de la plateforme #}
+      <div class="preview" aria-label="Aperçu du tableau de bord FannFlow">
+        <div class="float-card float-card--a" aria-hidden="true">
+          <span class="icon-badge icon-badge--sm icon-badge--green"><i data-lucide="scan-line"></i></span>
+          <span><strong>{{ snapshot.check_ins }} entrée{{ snapshot.check_ins|pluralize }}</strong><small>contrôlées par QR code</small></span>
+        </div>
+        <div class="preview__window">
+          <div class="preview__bar" aria-hidden="true"><i></i><i></i><i></i><span>FannFlow · Tableau de bord</span></div>
+          <div class="preview__body">
+            <div class="preview__kpis">
+              <div class="preview__kpi"><small>Inscriptions</small><strong>{{ snapshot.registrations }}</strong></div>
+              <div class="preview__kpi"><small>Billets</small><strong>{{ snapshot.tickets }}</strong></div>
+              <div class="preview__kpi"><small>Équipe</small><strong>{{ snapshot.team_members }}</strong></div>
+            </div>
+            <div class="preview__chart">
+              <div class="preview__chart-head"><span>Inscriptions · 6 derniers mois</span><i data-lucide="trending-up" aria-hidden="true"></i></div>
+              <div class="preview__bars" role="img" aria-label="Inscriptions par mois : {% for bar in evolution_bars %}{{ bar.label }} {{ bar.value }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                {% for bar in evolution_bars %}
+                  <div><span style="height: {{ bar.height|default:0 }}%; animation-delay: {{ forloop.counter0 }}00ms" title="{{ bar.label }} : {{ bar.value }}"></span><small>{{ bar.label|slice:":4" }}</small></div>
+                {% endfor %}
+              </div>
+            </div>
+            {% if not snapshot.registrations %}
+              <p class="preview__note">Les indicateurs se remplissent avec les premières inscriptions.</p>
+            {% endif %}
           </div>
-          <b aria-hidden="true">→</b>
-        </a>
-      {% endfor %}
+        </div>
+        <div class="float-card float-card--b" aria-hidden="true">
+          <span class="icon-badge icon-badge--sm icon-badge--orange"><i data-lucide="ticket-check"></i></span>
+          <span><strong>Billet confirmé</strong><small>QR généré automatiquement</small></span>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="overview-section" aria-labelledby="overview-values">
-    <div class="overview-values">
-      <article>
-        <span>01</span>
-        <h2 id="overview-values">Centralisation</h2>
-        <p>Retrouvez les informations essentielles de chaque événement au même endroit.</p>
-      </article>
-      <article>
-        <span>02</span>
-        <h2>Collaboration</h2>
-        <p>Coordonnez les organisateurs, équipes, partenaires et participants.</p>
-      </article>
-      <article>
-        <span>03</span>
-        <h2>Intelligence</h2>
-        <p>Préparez des décisions éclairées grâce aux analyses et recommandations.</p>
-      </article>
+  {# ===== Touche humaine : la culture se vit ensemble ===== #}
+  <section class="section human" aria-labelledby="human-title">
+    <div class="container split">
+      <div class="human__art" data-reveal>
+        {% include "core/components/illustration_crowd.html" %}
+      </div>
+      <div data-reveal>
+        <p class="eyebrow eyebrow--warm"><i data-lucide="heart" aria-hidden="true"></i> Au cœur de FannFlow, des personnes</p>
+        <h2 id="human-title">La culture se vit <span class="scribble">ensemble</span></h2>
+        <p class="split__lead">Un événement réussi, c’est un public qui se sent attendu, une équipe qui se comprend et des artistes qui peuvent se concentrer sur l’essentiel. FannFlow s’occupe de l’organisation pour que chacun profite du moment.</p>
+        <div class="persona-list">
+          <a class="persona" href="{% url 'core:events' %}">
+            <span class="persona__icon persona__icon--orange"><i data-lucide="party-popper" aria-hidden="true"></i></span>
+            <span><strong>Vous aimez sortir ?</strong><small>Trouvez votre prochain événement et gardez votre billet sur votre téléphone.</small></span>
+            <i class="persona__arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+          </a>
+          <a class="persona" href="{% if organize_url %}{{ organize_url }}{% else %}{% url 'core:events' %}{% endif %}">
+            <span class="persona__icon persona__icon--teal"><i data-lucide="hand-heart" aria-hidden="true"></i></span>
+            <span><strong>Vous organisez ?</strong><small>Inscriptions, accès et équipe : tout est suivi au même endroit.</small></span>
+            <i class="persona__arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+          </a>
+          <a class="persona" href="#fonctionnement">
+            <span class="persona__icon persona__icon--blue"><i data-lucide="landmark" aria-hidden="true"></i></span>
+            <span><strong>Vous dirigez une structure culturelle ?</strong><small>Gardez une vue claire sur vos événements et vos budgets.</small></span>
+            <i class="persona__arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="container disciplines" data-reveal>
+      <p>Toutes les formes de culture ont leur place</p>
+      <ul>
+        <li><i data-lucide="music" aria-hidden="true"></i> Musique</li>
+        <li><i data-lucide="drama" aria-hidden="true"></i> Théâtre</li>
+        <li><i data-lucide="footprints" aria-hidden="true"></i> Danse</li>
+        <li><i data-lucide="clapperboard" aria-hidden="true"></i> Cinéma</li>
+        <li><i data-lucide="palette" aria-hidden="true"></i> Expositions</li>
+        <li><i data-lucide="tent" aria-hidden="true"></i> Festivals</li>
+        <li><i data-lucide="book-open" aria-hidden="true"></i> Littérature</li>
+        <li><i data-lucide="landmark" aria-hidden="true"></i> Patrimoine</li>
+      </ul>
+    </div>
+  </section>
+
+  {# ===== Modules ===== #}
+  <section class="section" id="modules" aria-labelledby="modules-title">
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <div>
+          <p class="eyebrow">Tout votre événement</p>
+          <h2 id="modules-title">Cinq modules, une seule plateforme</h2>
+          <p>Chaque module couvre une étape clé de l’organisation, et tous partagent les mêmes données.</p>
+        </div>
+      </div>
+      <div class="module-grid2">
+        {% for module in fannflow_modules %}
+          {% if module.locked %}<div class="module-card2 is-locked" data-reveal>{% else %}<a class="module-card2" href="{{ module.href }}" data-reveal>{% endif %}
+            <div class="module-card2__top">
+              <span class="icon-badge"><i data-lucide="{{ module.icon }}" aria-hidden="true"></i></span>
+              <span class="module-card2__code">{{ module.code }}</span>
+            </div>
+            <h3>{{ module.title }}</h3>
+            <p>{{ module.pitch }}</p>
+            <div class="module-card2__tags">
+              {% for entity in module.entities|slice:":4" %}<span class="tag">{{ entity.name }}</span>{% endfor %}
+            </div>
+            <div class="module-card2__foot">
+              {% if module.locked %}
+                <span><i data-lucide="lock" aria-hidden="true"></i> Réservé à l’équipe d’organisation</span>
+              {% else %}
+                <span>{% if can_access_backoffice %}Ouvrir le module{% elif user.is_authenticated %}Accéder{% else %}Se connecter pour gérer{% endif %}</span>
+                <i class="module-card2__arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+              {% endif %}
+            </div>
+          {% if module.locked %}</div>{% else %}</a>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {# ===== Prochains événements (base de données) ===== #}
+  <section class="section affiche" id="evenements" aria-labelledby="events-title">
+    <span class="affiche__blob affiche__blob--a" aria-hidden="true"></span>
+    <span class="affiche__blob affiche__blob--b" aria-hidden="true"></span>
+    <span class="affiche__blob affiche__blob--c" aria-hidden="true"></span>
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <div>
+          <p class="eyebrow eyebrow--warm"><i data-lucide="sparkles" aria-hidden="true"></i> À l’affiche</p>
+          <h2 id="events-title">Prochains <span class="scribble">événements</span></h2>
+          <p>Concerts, expositions, festivals et rencontres publiés par les organisateurs.</p>
+        </div>
+        <a class="btn btn-accent" href="{% url 'core:events' %}">Tout le programme <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+      </div>
+      <div class="event-search-wrap" data-reveal>{% include "core/components/event_search.html" %}</div>
+      {% if events.items %}
+        <div class="event-grid">
+          {% for event in events.items %}
+            <div data-reveal>{% include "core/components/event_card.html" %}</div>
+          {% endfor %}
+        </div>
+      {% elif events.error %}
+        {% include "core/components/events_state.html" %}
+      {% else %}
+        {# Affiches décoratives : aucune donnée d'événement inventée #}
+        <div class="affiche-empty" data-reveal>
+          <div class="posters" aria-hidden="true">
+            <div class="poster poster--orange"><i data-lucide="music"></i><span></span><span></span></div>
+            <div class="poster poster--teal"><i data-lucide="drama"></i><span></span><span></span></div>
+            <div class="poster poster--pink"><i data-lucide="palette"></i><span></span><span></span></div>
+          </div>
+          <div class="affiche-empty__text">
+            <h3>{% if events.available %}Aucun événement à venir pour l’instant{% else %}Le programme arrive bientôt{% endif %}</h3>
+            <p>Les prochains concerts, spectacles et expositions apparaîtront ici dès leur publication par l’équipe d’organisation. Revenez vite !</p>
+            {% if not user.is_authenticated %}
+              <a class="btn btn-primary" href="{% url 'users_teams:register' %}"><i data-lucide="bell-ring" aria-hidden="true"></i> Créer un compte pour réserver</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ===== Analytique intelligente ===== #}
+  <section class="section" aria-labelledby="analytics-title">
+    <div class="container split">
+      <div data-reveal>
+        <p class="eyebrow">Analytique intelligente</p>
+        <h2 id="analytics-title">Des décisions éclairées, en un coup d’œil</h2>
+        <p class="split__lead">Le tableau de bord consolide les données de chaque module : évolution des inscriptions, taux de confirmation, fréquentation des accès et répartition budgétaire.</p>
+        <ul class="feature-list">
+          <li><span class="icon-badge icon-badge--sm icon-badge--blue"><i data-lucide="trending-up" aria-hidden="true"></i></span><div><strong>Indicateurs en temps réel</strong><span>KPI d’inscriptions, de billetterie et de présence actualisés à chaque action.</span></div></li>
+          <li><span class="icon-badge icon-badge--sm icon-badge--orange"><i data-lucide="bell-ring" aria-hidden="true"></i></span><div><strong>Alertes proactives</strong><span>Paiements en attente, points d’accès saturés : l’équipe est prévenue à temps.</span></div></li>
+          <li><span class="icon-badge icon-badge--sm icon-badge--green"><i data-lucide="brain-circuit" aria-hidden="true"></i></span><div><strong>Pilotage par rôle</strong><span>Chaque profil voit les indicateurs et actions qui le concernent.</span></div></li>
+        </ul>
+      </div>
+      <div class="panel-visual" data-reveal>
+        <h3>Statut des inscriptions <span class="tag tag--teal">{{ snapshot.registrations }} au total</span></h3>
+        {% if snapshot.registrations %}
+          <div class="meter">
+            {% for row in snapshot.status_distribution %}
+              <div class="meter__row">
+                <span>{{ row.label }}</span>
+                <div class="meter__track" role="img" aria-label="{{ row.label }} : {{ row.value }} sur {{ snapshot.registrations }}"><div class="meter__fill" style="width: {% widthratio row.value snapshot.registrations 100 %}%"></div></div>
+                <b>{{ row.value }}</b>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="state state--compact">
+            <span class="icon-badge"><i data-lucide="chart-no-axes-column" aria-hidden="true"></i></span>
+            <p>Aucune inscription enregistrée pour l’instant : les statistiques apparaîtront ici.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  {# ===== Votre sortie, étape par étape ===== #}
+  <section class="section journey" aria-labelledby="journey-title">
+    <div class="container split">
+      <div class="journey__phone-wrap" data-reveal aria-hidden="true">
+        <div class="phone">
+          <div class="phone__notch"></div>
+          <div class="phone__screen">
+            <p class="phone__app">Fann<b>Flow</b></p>
+            <div class="mticket">
+              <div class="mticket__head">
+                <small>Billet électronique</small>
+                <strong>Votre prochaine sortie</strong>
+                <span><i data-lucide="calendar"></i> Date · <i data-lucide="map-pin"></i> Lieu</span>
+              </div>
+              <div class="mticket__cut"></div>
+              <div class="mticket__body">
+                <svg class="mticket__qr" viewBox="0 0 21 21" shape-rendering="crispEdges">
+                  <path fill="#1E3A5F" d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z"/>
+                  <path fill="#fff" d="M1 1h5v5H1zM15 1h5v5h-5zM1 15h5v5H1z"/>
+                  <path fill="#1E3A5F" d="M2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2zM8 0h1v2H8zM10 1h2v1h-2zM9 3h3v1H9zM8 5h1v3H8zM11 5h2v2h-2zM0 8h2v1H0zM3 8h3v1H3zM9 9h3v3H9zM14 8h2v2h-2zM17 9h3v1h-3zM8 13h2v2H8zM12 12h2v1h-2zM15 12h1v3h-1zM18 12h3v2h-3zM11 15h3v1h-3zM9 17h1v4H9zM12 18h2v3h-2zM16 16h2v2h-2zM19 17h2v1h-2zM15 19h3v2h-3z"/>
+                </svg>
+                <small>Présentez ce QR code à l’entrée</small>
+              </div>
+            </div>
+            <div class="phone__toast"><i data-lucide="circle-check"></i> Entrée validée, bon spectacle !</div>
+          </div>
+        </div>
+        <span class="journey__spark journey__spark--a"></span>
+        <span class="journey__spark journey__spark--b"></span>
+      </div>
+
+      <div data-reveal>
+        <p class="eyebrow eyebrow--light"><i data-lucide="sparkles" aria-hidden="true"></i> Côté public</p>
+        <h2 id="journey-title">Votre sortie, <span class="scribble">sans stress</span></h2>
+        <p class="journey__lead">De la découverte d’un événement jusqu’au moment où les lumières s’éteignent, FannFlow vous accompagne à chaque étape.</p>
+        <ol class="journey__steps">
+          <li>
+            <span class="journey__icon journey__icon--orange"><i data-lucide="compass" aria-hidden="true"></i></span>
+            <div><strong>Découvrez</strong><span>Explorez le programme par mot clé, salle ou date.</span></div>
+          </li>
+          <li>
+            <span class="journey__icon journey__icon--pink"><i data-lucide="mouse-pointer-click" aria-hidden="true"></i></span>
+            <div><strong>Réservez</strong><span>Inscrivez-vous en quelques clics depuis votre compte.</span></div>
+          </li>
+          <li>
+            <span class="journey__icon journey__icon--teal"><i data-lucide="qr-code" aria-hidden="true"></i></span>
+            <div><strong>Recevez votre billet</strong><span>Votre billet QR est prêt dans « Mon espace », sur votre téléphone.</span></div>
+          </li>
+          <li>
+            <span class="journey__icon journey__icon--violet"><i data-lucide="party-popper" aria-hidden="true"></i></span>
+            <div><strong>Profitez</strong><span>Un scan à l’entrée, et place au spectacle.</span></div>
+          </li>
+        </ol>
+        <div class="journey__actions">
+          <a class="btn btn-accent btn-lg" href="{% url 'core:events' %}"><i data-lucide="calendar-search" aria-hidden="true"></i> Trouver une sortie</a>
+          {% if user.is_authenticated and not can_access_backoffice %}
+            <a class="btn btn-outline-light btn-lg" href="{% url 'core:my_space' %}"><i data-lucide="ticket" aria-hidden="true"></i> Mes billets</a>
+          {% elif not user.is_authenticated %}
+            <a class="btn btn-outline-light btn-lg" href="{% url 'users_teams:register' %}">Créer mon compte</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ===== Comment ça marche ===== #}
+  <section class="section" id="fonctionnement" aria-labelledby="how-title">
+    <div class="container">
+      <div class="section-head section-head--center" data-reveal>
+        <p class="eyebrow">Comment ça marche</p>
+        <h2 id="how-title">De l’idée à l’événement, en trois étapes</h2>
+      </div>
+      <ol class="steps">
+        <li class="step" data-reveal>
+          <span class="step__num" aria-hidden="true">01</span>
+          <span class="icon-badge icon-badge--blue"><i data-lucide="calendar-plus" aria-hidden="true"></i></span>
+          <h3>Planifiez</h3>
+          <p>Créez l’événement, son programme, ses intervenants et réservez lieux et ressources.</p>
+        </li>
+        <li class="step" data-reveal>
+          <span class="step__num" aria-hidden="true">02</span>
+          <span class="icon-badge icon-badge--orange"><i data-lucide="ticket" aria-hidden="true"></i></span>
+          <h3>Ouvrez les inscriptions</h3>
+          <p>Les participants s’inscrivent, paient et reçoivent un billet QR unique.</p>
+        </li>
+        <li class="step" data-reveal>
+          <span class="step__num" aria-hidden="true">03</span>
+          <span class="icon-badge icon-badge--green"><i data-lucide="scan-line" aria-hidden="true"></i></span>
+          <h3>Accueillez et analysez</h3>
+          <p>Contrôlez les entrées en temps réel et suivez les indicateurs dans le tableau de bord.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  {# ===== Appel à l'action ===== #}
+  <section class="section" style="padding-top: 0" aria-labelledby="cta-title">
+    <div class="container">
+      <div class="cta-band" data-reveal>
+        <div>
+          <h2 id="cta-title">Prêt à faire vivre votre prochain événement ?</h2>
+          <p>Rejoignez FannFlow pour réserver vos places, ou connectez-vous à l’espace de gestion pour organiser.</p>
+        </div>
+        <div class="cta-band__actions">
+          {% if user.is_authenticated %}
+            {% if can_access_backoffice %}
+              <a class="btn btn-accent btn-lg" href="{% url 'users_teams:home' %}"><i data-lucide="layout-dashboard" aria-hidden="true"></i> Ouvrir le tableau de bord</a>
+            {% else %}
+              <a class="btn btn-accent btn-lg" href="{% url 'core:my_space' %}"><i data-lucide="ticket" aria-hidden="true"></i> Voir mes billets</a>
+            {% endif %}
+            <a class="btn btn-outline-light btn-lg" href="{% url 'core:events' %}">Explorer le programme</a>
+          {% else %}
+            <a class="btn btn-accent btn-lg" href="{% url 'users_teams:register' %}"><i data-lucide="user-plus" aria-hidden="true"></i> Créer un compte</a>
+            <a class="btn btn-outline-light btn-lg" href="{% url 'users_teams:login' %}">Se connecter</a>
+          {% endif %}
+        </div>
+      </div>
     </div>
   </section>
 {% endblock %}

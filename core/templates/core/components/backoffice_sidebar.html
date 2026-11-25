@@ -1,0 +1,66 @@
+{% load static %}
+<aside class="bo-sidebar" id="bo-sidebar" data-sidebar aria-label="Navigation de l’espace de gestion">
+  <div class="bo-sidebar__head">
+    <a class="fo-brand fo-brand--light" href="{% url 'users_teams:home' %}" aria-label="Tableau de bord FannFlow">
+      <span class="fo-brand__mark"><img src="{% static 'core/img/logo.png' %}" alt="" width="30" height="30"></span>
+      <span class="fo-brand__name">Fann<b>Flow</b></span>
+    </a>
+    <span class="bo-sidebar__tag">Back-office</span>
+  </div>
+
+  {% with ns=current_namespace url=current_url_name %}
+  <nav class="bo-nav">
+    <p class="bo-nav__label">Administration</p>
+    <a class="bo-nav__link" href="{% url 'users_teams:home' %}" {% if ns == "users_teams" and url == "home" %}aria-current="page"{% endif %}>
+      <i data-lucide="layout-dashboard" aria-hidden="true"></i> Vue générale
+    </a>
+    {% if user.is_administrator %}
+      <a class="bo-nav__link" href="{% url 'users_teams:user_list' %}" {% if ns == "users_teams" and url == "user_list" or ns == "users_teams" and url == "user_detail" or ns == "users_teams" and url == "user_update" or ns == "users_teams" and url == "user_delete" %}aria-current="page"{% endif %}>
+        <i data-lucide="users" aria-hidden="true"></i> Utilisateurs
+      </a>
+      <a class="bo-nav__link" href="{% url 'users_teams:user_create' %}" {% if ns == "users_teams" and url == "user_create" %}aria-current="page"{% endif %}>
+        <i data-lucide="user-plus" aria-hidden="true"></i> Nouvel utilisateur
+      </a>
+    {% endif %}
+    <a class="bo-nav__link" href="{% url 'users_teams:organizers' %}" {% if ns == "users_teams" and url == "organizers" %}aria-current="page"{% endif %}>
+      <i data-lucide="calendar-check" aria-hidden="true"></i> Organisateurs d’événements
+    </a>
+
+    <p class="bo-nav__label">Modules</p>
+    {% for module in fannflow_modules %}
+      <details class="bo-nav__group" {% if ns == module.app_name %}open{% endif %}>
+        <summary class="bo-nav__link{% if ns == module.app_name %} is-current{% endif %}">
+          <i data-lucide="{{ module.icon }}" aria-hidden="true"></i>
+          <span>{{ module.title }}</span>
+          <i class="bo-nav__chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+        </summary>
+        <div class="bo-nav__sub">
+          <a href="{% url module.app_name|add:':home' %}" {% if ns == module.app_name and url == "home" %}aria-current="page"{% endif %}>Vue générale</a>
+          {% for entity in module.entities %}
+            {% url module.app_name|add:':entity_list' entity.slug as entity_url %}
+            <a href="{{ entity_url }}" {% if request.path == entity_url %}aria-current="page"{% endif %}>{{ entity.name }}</a>
+          {% endfor %}
+        </div>
+      </details>
+    {% endfor %}
+
+    <p class="bo-nav__label">Préférences</p>
+    <a class="bo-nav__link" href="{% url 'users_teams:profile' %}" {% if ns == "users_teams" and url == "profile" %}aria-current="page"{% endif %}>
+      <i data-lucide="user-cog" aria-hidden="true"></i> Mon profil
+    </a>
+    <a class="bo-nav__link" href="{% url 'users_teams:settings' %}" {% if ns == "users_teams" and url == "settings" %}aria-current="page"{% endif %}>
+      <i data-lucide="settings" aria-hidden="true"></i> Paramètres
+    </a>
+    {% if user.is_administrator %}
+      <a class="bo-nav__link" href="{% url 'admin:index' %}">
+        <i data-lucide="database" aria-hidden="true"></i> Administration Django
+      </a>
+    {% endif %}
+  </nav>
+  {% endwith %}
+
+  <a class="bo-sidebar__site" href="{% url 'core:home' %}">
+    <i data-lucide="external-link" aria-hidden="true"></i> Voir le site public
+  </a>
+</aside>
+<div class="bo-backdrop" data-sidebar-close hidden></div>

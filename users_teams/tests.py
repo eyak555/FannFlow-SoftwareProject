@@ -293,3 +293,189 @@ class RegistrationTests(TestCase):
         response = self.client.get(reverse("users_teams:register"))
         self.assertNotContains(response, 'name="role"')
         self.assertNotContains(response, 'name="business_role"')
+
+
+# --- Tableau de bord d'administration, journal, préférences -----------------
+
+from .models import AccountActivity  # noqa: E402
+
+
+class AdminDashboardTests(TestCase):
+    def setUp(self):
+        self.admin = make_user("admin@test.tn", role=User.Role.ADMIN, first_name="Ada", last_name="Min")
+        self.client.force_login(self.admin)
+
+    def test_kpis_come_from_database(self):
+        make_user("dir@test.tn", business_role=User.BusinessRole.DIRECTOR)
+        make_user("orga@test.tn", business_role=User.BusinessRole.ORGANIZER)
+        make_user("off@test.tn", status=User.Status.INACTIVE)
+        response = self.client.get(reverse("users_teams:home"))
+        self.assertTemplateUsed(response, "users_teams/dashboard_admin.html")
+        kpis = {kpi["label"]: kpi["value"] for kpi in response.context["admin"]["kpis"]}
+        self.assertEqual(kpis["Total utilisateurs"], 4)
+        self.assertEqual(kpis["Administrateurs"], 1)
+        self.assertEqual(kpis["Directeurs et organisateurs"], 2)
+        self.assertEqual(kpis["Comptes actifs"], 3)
+        self.assertContains(response, "Bonjour, Ada")
+
+    def test_charts_match_counts(self):
+        make_user("p@test.tn")
+        make_user("off@test.tn", status=User.Status.INACTIVE)
+        charts = self.client.get(reverse("users_teams:home")).context["admin"]["charts"]
+        roles = {row["label"]: row["value"] for row in charts["roles"]}
+        self.assertEqual(roles, {"Administrateurs": 1, "Directeurs": 0, "Organisateurs": 0, "Participants": 2})
+        status = {row["label"]: row["value"] for row in charts["status"]}
+        self.assertEqual(status, {"Actifs": 2, "Inactifs": 1})
+        self.assertEqual(sum(row["value"] for row in charts["evolution"]), 3)
+
+    def test_inactive_accounts_raise_notification(self):
+        make_user("off@test.tn", status=User.Status.INACTIVE)
+        response = self.client.get(reverse("users_teams:home"))
+        titles = [n["title"] for n in response.context["topbar_notifications"]]
+        self.assertIn("1 compte(s) inactif(s)", titles)
+
+    def test_management_cards_link_to_working_pages(self):
+        response = self.client.get(reverse("users_teams:home"))
+        for url in (
+            reverse("users_teams:user_list"),
+            f"{reverse('users_teams:user_create')}?role=participant",
+            f"{reverse('users_teams:user_create')}?role=administrateur",
+            reverse("users_teams:organizers"),
+            reverse("users_teams:profile"),
+            reverse("users_teams:settings"),
+        ):
+            with self.subTest(url=url):
+                self.assertContains(response, url.replace("&", "&amp;"))
+                self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_no_duplicate_welcome_message_for_team(self):
+        self.client.logout()
+        response = self.client.post(
+            reverse("users_teams:login"), {"username": "admin@test.tn", "password": PASSWORD}, follow=True
+        )
+        self.assertNotContains(response, "Bienvenue, Ada")
+
+
+class ActivityLogTests(TestCase):
+    def setUp(self):
+        self.admin = make_user("admin@test.tn", role=User.Role.ADMIN)
+        self.client.force_login(self.admin)
+        self.target = make_user("cible@test.tn", first_name="Cible", last_name="Compte")
+
+    def update(self, **overrides):
+        data = user_payload(
+            first_name="Cible", last_name="Compte", email="cible@test.tn",
+            business_role="", password1="", password2="",
+        )
+        data.update(overrides)
+        return self.client.post(reverse("users_teams:user_update", args=[self.target.pk]), data)
+
+    def test_role_change_is_logged(self):
+        self.update(business_role=User.BusinessRole.ORGANIZER)
+        entry = AccountActivity.objects.get()
+        self.assertEqual(entry.action, AccountActivity.Action.ROLE_CHANGED)
+        self.assertEqual(entry.actor, self.admin)
+        self.assertIn("Organisateur", entry.details)
+
+    def test_deactivation_is_logged(self):
+        self.update(status=User.Status.INACTIVE)
+        self.assertEqual(AccountActivity.objects.get().action, AccountActivity.Action.DEACTIVATED)
+
+    def test_plain_edit_is_logged(self):
+        self.update(phone="+216 22 333 444")
+        self.assertEqual(AccountActivity.objects.get().action, AccountActivity.Action.UPDATED)
+
+    def test_delete_keeps_label(self):
+        self.client.post(reverse("users_teams:user_delete", args=[self.target.pk]))
+        entry = AccountActivity.objects.get()
+        self.assertEqual(entry.action, AccountActivity.Action.DELETED)
+        self.assertIsNone(entry.target)
+        self.assertEqual(entry.target_label, "Cible Compte")
+
+    def test_dashboard_lists_activity_and_creations(self):
+        self.update(status=User.Status.INACTIVE)
+        labels = [item["label"] for item in self.client.get(reverse("users_teams:home")).context["admin"]["activities"]]
+        self.assertIn("Compte désactivé", labels)
+        self.assertIn("Nouveau compte", labels)
+
+
+class AdvancedSearchTests(TestCase):
+    def setUp(self):
+        self.admin = make_user("admin@test.tn", role=User.Role.ADMIN)
+        self.client.force_login(self.admin)
+        self.organizer = make_user("orga@test.tn", business_role=User.BusinessRole.ORGANIZER, phone="+216 20 000 000")
+        self.participant = make_user("p@test.tn")
+
+    def emails(self, **params):
+        response = self.client.get(reverse("users_teams:user_list"), params)
+        return {u.email for u in response.context["users"]}
+
+    def test_business_role_filter(self):
+        self.assertEqual(self.emails(business_role="organisateur"), {"orga@test.tn"})
+        self.assertEqual(self.emails(business_role="none"), {"admin@test.tn", "p@test.tn"})
+
+    def test_phone_and_connexion_filters(self):
+        self.assertEqual(self.emails(phone="1"), {"orga@test.tn"})
+        # force_login met à jour last_login de l'administrateur.
+        self.assertNotIn("admin@test.tn", self.emails(connexion="never"))
+        self.assertIn("admin@test.tn", self.emails(connexion="recent"))
+
+    def test_creation_date_range(self):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        User.objects.filter(pk=self.participant.pk).update(created_at=timezone.now() - timedelta(days=400))
+        old = (timezone.localdate() - timedelta(days=300)).isoformat()
+        self.assertEqual(self.emails(created_to=old), {"p@test.tn"})
+        self.assertNotIn("p@test.tn", self.emails(created_from=old))
+
+    def test_invalid_values_are_ignored(self):
+        self.assertEqual(len(self.emails(business_role="hack", created_from="pas-une-date")), 3)
+
+
+class CreatePresetTests(TestCase):
+    def test_role_preset(self):
+        self.client.force_login(make_user("admin@test.tn", role=User.Role.ADMIN))
+        response = self.client.get(reverse("users_teams:user_create"), {"role": "administrateur"})
+        self.assertEqual(response.context["form"].initial["role"], User.Role.ADMIN)
+        self.assertContains(response, "Nouveau compte administrateur")
+
+
+class PreferencesTests(TestCase):
+    def setUp(self):
+        self.organizer = make_user("orga@test.tn", business_role=User.BusinessRole.ORGANIZER, first_name="Sana")
+        self.client.force_login(self.organizer)
+
+    def test_profile_update_cannot_change_role(self):
+        response = self.client.post(reverse("users_teams:profile"), {
+            "first_name": "Sana", "last_name": "Nouveau", "phone": "", "birth_date": "",
+            "role": User.Role.ADMIN, "business_role": "", "status": User.Status.INACTIVE,
+        })
+        self.assertRedirects(response, reverse("users_teams:profile"))
+        self.organizer.refresh_from_db()
+        self.assertEqual(self.organizer.last_name, "Nouveau")
+        self.assertEqual(self.organizer.role, User.Role.PARTICIPANT)
+        self.assertEqual(self.organizer.business_role, User.BusinessRole.ORGANIZER)
+        self.assertEqual(self.organizer.status, User.Status.ACTIVE)
+
+    def test_password_change_keeps_session(self):
+        response = self.client.post(reverse("users_teams:settings"), {
+            "old_password": PASSWORD, "new_password1": NEW_PASSWORD, "new_password2": NEW_PASSWORD,
+        })
+        self.assertRedirects(response, reverse("users_teams:settings"))
+        self.organizer.refresh_from_db()
+        self.assertTrue(self.organizer.check_password(NEW_PASSWORD))
+        self.assertEqual(self.client.get(reverse("users_teams:home")).status_code, 200)
+
+    def test_organizer_sees_team_page_without_admin_actions(self):
+        response = self.client.get(reverse("users_teams:organizers"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sana")
+        self.assertNotContains(response, "Modifier le rôle")
+        self.assertContains(response, "Intégration préparée")
+
+    def test_participant_cannot_reach_preferences(self):
+        self.client.force_login(make_user("p@test.tn"))
+        for name in ("users_teams:profile", "users_teams:settings", "users_teams:organizers"):
+            with self.subTest(name=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 403)

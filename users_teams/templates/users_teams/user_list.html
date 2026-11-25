@@ -4,45 +4,89 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'users_teams/css/users_teams.css' %}">{% endblock %}
 
 {% block page_actions %}
-  <a class="btn btn-secondary" href="{% url 'users_teams:home' %}">Espace de gestion</a>
-  <a class="btn btn-primary" href="{% url 'users_teams:user_create' %}">Nouvel utilisateur</a>
+  <a class="btn btn-ghost" href="{% url 'users_teams:home' %}"><i data-lucide="layout-dashboard" aria-hidden="true"></i> Tableau de bord</a>
+  <a class="btn btn-primary" href="{% url 'users_teams:user_create' %}"><i data-lucide="user-plus" aria-hidden="true"></i> Nouvel utilisateur</a>
 {% endblock %}
 
 {% block filters %}
-  <form class="list-filters" method="get" role="search" aria-label="Rechercher des utilisateurs">
-    <div class="field">
-      <label for="filter-q">Recherche</label>
-      <input class="ff-input" id="filter-q" type="search" name="q" value="{{ filters.q }}" placeholder="Nom, prénom ou email">
+  <form class="search-panel" method="get" role="search" aria-label="Rechercher des utilisateurs">
+    <div class="search-panel__main">
+      <label class="search-input" for="filter-q">
+        <i data-lucide="search" aria-hidden="true"></i>
+        <span class="visually-hidden">Recherche</span>
+        <input id="filter-q" type="search" name="q" value="{{ filters.q }}" placeholder="Rechercher par nom, prénom ou email…">
+      </label>
+      <div class="field">
+        <label for="filter-role">Rôle</label>
+        <select class="ff-input" id="filter-role" name="role">
+          <option value="">Tous</option>
+          {% for value, label in role_choices %}
+            <option value="{{ value }}"{% if filters.role == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-status">Statut</label>
+        <select class="ff-input" id="filter-status" name="status">
+          <option value="">Tous</option>
+          {% for value, label in status_choices %}
+            <option value="{{ value }}"{% if filters.status == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-sort">Trier par</label>
+        <select class="ff-input" id="filter-sort" name="sort">
+          {% for value, label in sort_options.items %}
+            <option value="{{ value }}"{% if filters.sort == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
-    <div class="field">
-      <label for="filter-role">Rôle</label>
-      <select class="ff-input" id="filter-role" name="role">
-        <option value="">Tous</option>
-        {% for value, label in role_choices %}
-          <option value="{{ value }}"{% if filters.role == value %} selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="field">
-      <label for="filter-status">Statut</label>
-      <select class="ff-input" id="filter-status" name="status">
-        <option value="">Tous</option>
-        {% for value, label in status_choices %}
-          <option value="{{ value }}"{% if filters.status == value %} selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="field">
-      <label for="filter-sort">Trier par</label>
-      <select class="ff-input" id="filter-sort" name="sort">
-        {% for value, label in sort_options.items %}
-          <option value="{{ value }}"{% if filters.sort == value %} selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="form-actions">
-      <button type="submit" class="btn btn-primary">Filtrer</button>
-      <a class="btn btn-secondary" href="{% url 'users_teams:user_list' %}">Réinitialiser</a>
+
+    <details class="search-panel__advanced"{% if advanced_active or advanced_open %} open{% endif %}>
+      <summary><i data-lucide="sliders-horizontal" aria-hidden="true"></i> Recherche avancée{% if advanced_active %} <span class="tag tag--accent">active</span>{% endif %}</summary>
+      <div class="search-panel__grid">
+        <div class="field">
+          <label for="filter-business-role">Rôle métier</label>
+          <select class="ff-input" id="filter-business-role" name="business_role">
+            <option value="">Tous</option>
+            {% for value, label in business_role_choices %}
+              <option value="{{ value }}"{% if filters.business_role == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+            <option value="none"{% if filters.business_role == "none" %} selected{% endif %}>Sans rôle métier</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="filter-connexion">Dernière connexion</label>
+          <select class="ff-input" id="filter-connexion" name="connexion">
+            <option value="">Peu importe</option>
+            {% for value, label in connexion_choices %}
+              <option value="{{ value }}"{% if filters.connexion == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="filter-created-from">Créé à partir du</label>
+          <input class="ff-input" id="filter-created-from" type="date" name="created_from" value="{{ filters.created_from }}">
+        </div>
+        <div class="field">
+          <label for="filter-created-to">Créé jusqu’au</label>
+          <input class="ff-input" id="filter-created-to" type="date" name="created_to" value="{{ filters.created_to }}">
+        </div>
+        <label class="check-field" for="filter-phone">
+          <input id="filter-phone" type="checkbox" name="phone" value="1"{% if filters.phone == "1" %} checked{% endif %}>
+          Avec numéro de téléphone
+        </label>
+      </div>
+    </details>
+
+    <div class="search-panel__actions">
+      <span class="text-muted">{% if advanced_active %}<i data-lucide="filter" aria-hidden="true"></i> Filtres avancés appliqués{% endif %}</span>
+      <div class="form-actions">
+        <a class="btn btn-ghost" href="{% url 'users_teams:user_list' %}"><i data-lucide="rotate-ccw" aria-hidden="true"></i> Réinitialiser</a>
+        <button type="submit" class="btn btn-primary"><i data-lucide="search" aria-hidden="true"></i> Rechercher</button>
+      </div>
     </div>
   </form>
 {% endblock %}
@@ -76,10 +120,10 @@
       <td class="data">{{ managed_user.created_at|date:"d/m/Y" }}</td>
       <td>
         <div class="row-actions">
-          <a class="btn btn-secondary" href="{% url 'users_teams:user_detail' managed_user.pk %}">Voir</a>
-          <a class="btn btn-secondary" href="{% url 'users_teams:user_update' managed_user.pk %}">Modifier</a>
+          <a class="table-action" href="{% url 'users_teams:user_detail' managed_user.pk %}">Voir</a>
+          <a class="table-action" href="{% url 'users_teams:user_update' managed_user.pk %}">Modifier</a>
           {% if managed_user.pk != user.pk %}
-            <a class="btn btn-danger" href="{% url 'users_teams:user_delete' managed_user.pk %}">Supprimer</a>
+            <a class="table-action table-action--delete" href="{% url 'users_teams:user_delete' managed_user.pk %}">Supprimer</a>
           {% endif %}
         </div>
       </td>
