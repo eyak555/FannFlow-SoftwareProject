@@ -5,6 +5,13 @@
   <p class="eyebrow">Gestion des billets</p>
   <h1>{% if object %}Modifier le billet{% else %}Nouveau billet{% endif %}</h1>
   <p class="page-intro">{% if object %}Mettez à jour les informations du billet.{% else %}Renseignez les informations du billet à émettre.{% endif %}</p>
-  <form class="ff-form app-form" method="post">{% csrf_token %}{{ form.as_p }}<div class="form-actions"><button class="btn btn-primary" type="submit">Enregistrer</button><a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'tickets' %}">Annuler</a></div></form>
+  <form class="ff-form app-form" method="post" novalidate>
+    {% csrf_token %}
+    {% if object %}
+      <p class="field"><label for="ticket-code">Code billet</label><input class="ff-input data" id="ticket-code" value="{{ object.code }}" readonly></p>
+    {% endif %}
+    {{ form.as_p }}
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Enregistrer</button><a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'tickets' %}">Annuler</a></div>
+  </form>
 </section>
 {% endblock %}

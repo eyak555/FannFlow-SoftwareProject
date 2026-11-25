@@ -35,6 +35,7 @@
 
 <section class="registration-table-panel" aria-label="Liste des inscriptions">
   <form class="registration-filters" method="get">
+    <input type="hidden" name="per_page" value="{{ selected_page_size }}">
     <label class="registration-search">
       <span class="visually-hidden">Rechercher une inscription</span>
       <span aria-hidden="true">⌕</span>
@@ -60,14 +61,14 @@
     </label>
     <button class="btn btn-secondary registration-filter-submit" type="submit">Filtrer</button>
     {% if search_query or selected_status or selected_payment %}
-      <a class="registration-reset" href="{% url 'registration_access:entity_list' 'registrations' %}">Réinitialiser</a>
+      <a class="registration-reset" href="{% url 'registration_access:entity_list' 'registrations' %}?per_page={{ selected_page_size }}">Réinitialiser</a>
     {% endif %}
   </form>
 
   <div class="registration-table-heading">
     <div>
       <h2>Participants</h2>
-      <p>{{ registrations|length }} résultat{{ registrations|length|pluralize:"s" }}</p>
+      <p>{{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize:"s" }}</p>
     </div>
     {% if search_query or selected_status or selected_payment %}
       <span class="filter-active">Filtres actifs</span>
@@ -134,7 +135,7 @@
                 <h2>Aucun résultat</h2>
                 <p>{% if search_query or selected_status or selected_payment %}Essayez de modifier les filtres ou la recherche.{% else %}Les inscriptions apparaîtront ici dès leur création.{% endif %}</p>
                 {% if search_query or selected_status or selected_payment %}
-                  <a class="text-link" href="{% url 'registration_access:entity_list' 'registrations' %}">Effacer les filtres</a>
+                  <a class="text-link" href="{% url 'registration_access:entity_list' 'registrations' %}?per_page={{ selected_page_size }}">Effacer les filtres</a>
                 {% endif %}
               </div>
             </td>
@@ -144,4 +145,5 @@
     </table>
   </div>
 </section>
+{% include "core/components/pagination.html" %}
 {% endblock %}

@@ -9,24 +9,27 @@
 <section class="registration-stats" aria-label="Résumé des points d’accès">
   <article class="registration-stat registration-stat--total"><span class="registration-stat__icon" aria-hidden="true">⌖</span><div><p>Points d’accès</p><strong>{{ access_point_stats.total }}</strong></div></article>
   <article class="registration-stat registration-stat--paid"><span class="registration-stat__icon" aria-hidden="true">↔</span><div><p>Capacité totale</p><strong>{{ access_point_stats.capacity|default:0 }}</strong></div></article>
+  <article class="registration-stat registration-stat--confirmed"><span class="registration-stat__icon" aria-hidden="true">◎</span><div><p>Personnes présentes</p><strong>{{ access_point_stats.on_site }}</strong></div></article>
 </section>
 
 <section class="registration-table-panel" aria-label="Liste des points d’accès">
   <form class="registration-filters" method="get">
+    <input type="hidden" name="per_page" value="{{ selected_page_size }}">
     <label class="registration-search"><span class="visually-hidden">Rechercher un point d’accès</span><span aria-hidden="true">⌕</span><input type="search" name="q" value="{{ search_query }}" placeholder="Nom, localisation ou événement…"></label>
     <button class="btn btn-secondary registration-filter-submit" type="submit">Rechercher</button>
-    {% if search_query %}<a class="registration-reset" href="{% url 'registration_access:entity_list' 'access-points' %}">Réinitialiser</a>{% endif %}
+    {% if search_query %}<a class="registration-reset" href="{% url 'registration_access:entity_list' 'access-points' %}?per_page={{ selected_page_size }}">Réinitialiser</a>{% endif %}
   </form>
 
-  <div class="registration-table-heading"><div><h2>Entrées configurées</h2><p>{{ access_points|length }} résultat{{ access_points|length|pluralize:"s" }}</p></div>{% if search_query %}<span class="filter-active">Recherche active</span>{% endif %}</div>
+  <div class="registration-table-heading"><div><h2>Entrées configurées</h2><p>{{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize:"s" }}</p></div>{% if search_query %}<span class="filter-active">Recherche active</span>{% endif %}</div>
   <div class="table-wrap registration-table-wrap">
     <table class="data-table registration-table">
-      <thead><tr><th>Nom</th><th>Événement</th><th>Localisation</th><th>Capacité</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+      <thead><tr><th>Nom</th><th>Événement</th><th>Localisation</th><th>Présents / capacité</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
       <tbody>{% for access_point in access_points %}
-        <tr><td><strong>{{ access_point.name }}</strong></td><td><span class="event-reference">Événement {{ access_point.event_id }}</span></td><td>{{ access_point.location }}</td><td><span class="status-pill status-pill--info"><span></span>{{ access_point.capacity }} places</span></td>
+        <tr><td><strong>{{ access_point.name }}</strong></td><td><span class="event-reference">Événement {{ access_point.event_id }}</span></td><td>{{ access_point.location }}</td><td><span class="status-pill {% if access_point.occupancy >= access_point.capacity %}status-pill--danger{% else %}status-pill--info{% endif %}"><span></span>{{ access_point.occupancy }} / {{ access_point.capacity }}</span></td>
           <td><div class="table-actions"><a class="table-action table-action--view" href="{% url 'registration_access:entity_detail' 'access-points' access_point.pk %}">Voir</a><a class="table-action table-action--edit" href="{% url 'registration_access:entity_update' 'access-points' access_point.pk %}">Modifier</a><a class="table-action table-action--delete" href="{% url 'registration_access:entity_delete' 'access-points' access_point.pk %}">Supprimer</a></div></td></tr>
       {% empty %}<tr><td class="empty-cell" colspan="5"><div class="registration-empty"><span aria-hidden="true">⌖</span><h2>Aucun résultat</h2><p>{% if search_query %}Aucun point d’accès ne correspond à la recherche.{% else %}Les points d’accès créés apparaîtront ici.{% endif %}</p></div></td></tr>{% endfor %}</tbody>
     </table>
   </div>
 </section>
+{% include "core/components/pagination.html" %}
 {% endblock %}

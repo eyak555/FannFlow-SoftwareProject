@@ -19,23 +19,22 @@ class RegistrationAccessCrudTests(TestCase):
             user=self.user,
             event_id=12,
             status=Registration.STATUS_CONFIRMED,
-            ticket_type="Standard",
+            ticket_type=Registration.TICKET_TYPE_STANDARD,
             payment_status=Registration.PAYMENT_PAID,
         )
         self.ticket = Ticket.objects.create(
             registration=self.registration,
-            qr_code="QR-TEST-001",
             price="25.00",
-        )
-        self.attendance = Attendance.objects.create(
-            ticket=self.ticket,
-            gate="Portail A",
         )
         self.access_point = AccessPoint.objects.create(
             event_id=12,
             name="Entrée principale",
             location="Hall Nord",
             capacity=250,
+        )
+        self.attendance = Attendance.objects.create(
+            ticket=self.ticket,
+            access_point=self.access_point,
         )
 
     def test_registration_access_homepage_uses_module_template_and_brand(self):
@@ -48,6 +47,90 @@ class RegistrationAccessCrudTests(TestCase):
         self.assertContains(response, "De l’inscription à l’entrée")
         self.assertContains(response, "Inscriptions")
         self.assertContains(response, "Points d’accès")
+
+    def test_module_navigation_has_simple_previous_page_arrow(self):
+        tickets_url = reverse(
+            "registration_access:entity_list",
+            args=["tickets"],
+        )
+        response = self.client.get(tickets_url)
+        self.assertContains(response, 'aria-label="Retour à la page précédente"')
+        self.assertContains(response, 'class="access-page-navigation__back"')
+        self.assertContains(response, 'href="/registration/"')
+        self.assertNotContains(response, 'class="access-page-navigation__steps"')
+
+    def test_registration_form_shows_server_side_errors_next_to_invalid_fields(self):
+        create_url = reverse(
+            "registration_access:entity_create",
+            args=["registrations"],
+        )
+        response = self.client.post(
+            create_url,
+            {
+                "user": self.user.pk,
+                "event_id": "",
+                "status": Registration.STATUS_PENDING,
+                "ticket_type": Registration.TICKET_TYPE_STANDARD,
+                "payment_status": Registration.PAYMENT_PENDING,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "novalidate")
+        self.assertContains(
+            response,
+            "Veuillez saisir le numéro de l’événement.",
+        )
+        self.assertContains(response, 'aria-invalid="true"')
+
+    def test_registration_type_is_a_choice_and_ticket_code_is_generated(self):
+        registration_form_response = self.client.get(
+            reverse("registration_access:entity_create", args=["registrations"])
+        )
+        self.assertContains(registration_form_response, 'name="ticket_type"')
+        self.assertContains(registration_form_response, 'value="standard"')
+        self.assertContains(registration_form_response, 'value="vip"')
+        self.assertContains(registration_form_response, 'value="group"')
+
+        self.assertEqual(self.ticket.code, f"FF-{self.ticket.pk:06d}")
+        second_ticket = Ticket.objects.create(
+            registration=self.registration,
+            price="15.00",
+        )
+        self.assertGreater(second_ticket.pk, self.ticket.pk)
+        self.assertEqual(second_ticket.code, f"FF-{second_ticket.pk:06d}")
+
+        ticket_form_response = self.client.get(
+            reverse("registration_access:entity_create", args=["tickets"])
+        )
+        self.assertNotContains(ticket_form_response, 'name="code"')
+        self.assertNotContains(ticket_form_response, "attribué automatiquement")
+
+        update_response = self.client.get(
+            reverse(
+                "registration_access:entity_update",
+                args=["tickets", self.ticket.pk],
+            )
+        )
+        self.assertContains(update_response, self.ticket.code)
+
+    def test_ticket_category_tracks_registration_type_changes(self):
+        response = self.client.post(
+            reverse(
+                "registration_access:entity_update",
+                args=["registrations", self.registration.pk],
+            ),
+            {
+                "user": self.user.pk,
+                "event_id": 12,
+                "status": Registration.STATUS_CONFIRMED,
+                "ticket_type": Registration.TICKET_TYPE_VIP,
+                "payment_status": Registration.PAYMENT_PAID,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.category, Ticket.CATEGORY_VIP)
 
     def test_lists_and_details_use_model_templates(self):
         pages = [
@@ -77,7 +160,7 @@ class RegistrationAccessCrudTests(TestCase):
             user=self.user,
             event_id=13,
             status=Registration.STATUS_CONFIRMED,
-            ticket_type="VIP",
+            ticket_type=Registration.TICKET_TYPE_VIP,
             payment_status=Registration.PAYMENT_PAID,
         )
         response = self.client.get(
@@ -93,7 +176,6 @@ class RegistrationAccessCrudTests(TestCase):
     def test_ticket_list_search_and_filters(self):
         used_ticket = Ticket.objects.create(
             registration=self.registration,
-            qr_code="QR-USED-002",
             price="40.00",
             category=Ticket.CATEGORY_VIP,
             status=Ticket.STATUS_USED,
@@ -101,7 +183,7 @@ class RegistrationAccessCrudTests(TestCase):
         response = self.client.get(
             reverse("registration_access:entity_list", args=["tickets"]),
             {
-                "q": "QR-USED",
+                "q": used_ticket.code,
                 "category": Ticket.CATEGORY_VIP,
                 "status": Ticket.STATUS_USED,
             },
@@ -114,12 +196,12 @@ class RegistrationAccessCrudTests(TestCase):
     def test_attendance_list_search_and_state_filter(self):
         checked_in = Attendance.objects.create(
             ticket=self.ticket,
-            gate="Portail B",
+            access_point=self.access_point,
             check_in=timezone.now(),
         )
         response = self.client.get(
             reverse("registration_access:entity_list", args=["attendances"]),
-            {"q": "Portail B", "state": "checked_in"},
+            {"q": "Entrée principale", "state": "checked_in"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(list(response.context["attendances"]), [checked_in])
@@ -135,6 +217,46 @@ class RegistrationAccessCrudTests(TestCase):
         self.assertEqual(response.context["access_point_stats"]["total"], 1)
         self.assertEqual(response.context["access_point_stats"]["capacity"], 250)
 
+    def test_entity_lists_paginate_and_keep_search_filters(self):
+        for entity in ("registrations", "tickets", "attendances", "access-points"):
+            with self.subTest(entity=entity):
+                response = self.client.get(
+                    reverse("registration_access:entity_list", args=[entity])
+                )
+                self.assertEqual(response.context["paginator"].per_page, 25)
+                self.assertEqual(
+                    response.context["page_size_options"],
+                    (10, 25, 50, 75, 100),
+                )
+
+        for event_id in range(100, 120):
+            Registration.objects.create(
+                user=self.user,
+                event_id=event_id,
+                ticket_type=Registration.TICKET_TYPE_STANDARD,
+            )
+
+        list_url = reverse("registration_access:entity_list", args=["registrations"])
+        first_page = self.client.get(
+            list_url,
+            {"q": "participant", "per_page": 10},
+        )
+        self.assertEqual(first_page.context["paginator"].count, 21)
+        self.assertEqual(first_page.context["paginator"].per_page, 10)
+        self.assertEqual(first_page.context["page_obj"].number, 1)
+        self.assertContains(
+            first_page,
+            '?page=2&amp;q=participant&amp;per_page=10',
+        )
+        self.assertContains(first_page, 'aria-label="Page suivante"')
+
+        second_page = self.client.get(
+            list_url,
+            {"q": "participant", "per_page": 10, "page": 2},
+        )
+        self.assertEqual(second_page.context["page_obj"].number, 2)
+        self.assertEqual(len(second_page.context["registrations"]), 10)
+
     def test_create_update_and_delete_registration(self):
         create_url = reverse(
             "registration_access:entity_create",
@@ -144,7 +266,7 @@ class RegistrationAccessCrudTests(TestCase):
             "user": self.user.pk,
             "event_id": 45,
             "status": Registration.STATUS_CONFIRMED,
-            "ticket_type": "VIP",
+            "ticket_type": Registration.TICKET_TYPE_VIP,
             "payment_status": Registration.PAYMENT_PAID,
         })
         created = Registration.objects.get(event_id=45)
@@ -165,7 +287,7 @@ class RegistrationAccessCrudTests(TestCase):
             "user": self.user.pk,
             "event_id": 45,
             "status": Registration.STATUS_CANCELLED,
-            "ticket_type": "VIP",
+            "ticket_type": Registration.TICKET_TYPE_VIP,
             "payment_status": Registration.PAYMENT_REFUNDED,
         })
         created.refresh_from_db()
@@ -194,7 +316,7 @@ class RegistrationAccessCrudTests(TestCase):
             "user": self.user.pk,
             "event_id": 46,
             "status": Registration.STATUS_PENDING,
-            "ticket_type": "VIP",
+            "ticket_type": Registration.TICKET_TYPE_VIP,
             "payment_status": Registration.PAYMENT_PENDING,
         })
         registration = Registration.objects.get(event_id=46)
@@ -217,7 +339,7 @@ class RegistrationAccessCrudTests(TestCase):
             "user": self.user.pk,
             "event_id": 46,
             "status": Registration.STATUS_CONFIRMED,
-            "ticket_type": "VIP",
+            "ticket_type": Registration.TICKET_TYPE_VIP,
             "payment_status": Registration.PAYMENT_PENDING,
         })
         self.assertEqual(response.status_code, 302)
@@ -235,11 +357,10 @@ class RegistrationAccessCrudTests(TestCase):
         registration = Registration.objects.create(
             user=self.user,
             event_id=47,
-            ticket_type="Standard",
+            ticket_type=Registration.TICKET_TYPE_STANDARD,
         )
         ticket = Ticket.objects.create(
             registration=registration,
-            qr_code="QR-PAID-003",
             price="25.00",
             status=Ticket.STATUS_PENDING,
         )
@@ -251,7 +372,7 @@ class RegistrationAccessCrudTests(TestCase):
             "user": self.user.pk,
             "event_id": 47,
             "status": Registration.STATUS_CONFIRMED,
-            "ticket_type": "Standard",
+            "ticket_type": Registration.TICKET_TYPE_STANDARD,
             "payment_status": Registration.PAYMENT_PENDING,
         }
         self.client.post(update_url, payload)
@@ -267,50 +388,100 @@ class RegistrationAccessCrudTests(TestCase):
         registration = Registration.objects.create(
             user=self.user,
             event_id=48,
-            ticket_type="Standard",
+            ticket_type=Registration.TICKET_TYPE_STANDARD,
         )
         response = self.client.post(
             reverse("registration_access:entity_create", args=["tickets"]),
             {
                 "registration": registration.pk,
-                "qr_code": "QR-EARLY-004",
                 "price": "0.00",
                 "category": Ticket.CATEGORY_STANDARD,
                 "status": Ticket.STATUS_AVAILABLE,
             },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(Ticket.objects.filter(qr_code="QR-EARLY-004").exists())
+        self.assertFalse(Ticket.objects.filter(registration=registration).exists())
         self.assertContains(response, "avant la confirmation")
 
+    def test_ticket_price_validation_is_server_side_and_clear(self):
+        create_url = reverse("registration_access:entity_create", args=["tickets"])
+        base_payload = {
+            "registration": self.registration.pk,
+            "category": Ticket.CATEGORY_STANDARD,
+            "status": Ticket.STATUS_AVAILABLE,
+        }
+        free_ticket_response = self.client.post(
+            create_url,
+            {**base_payload, "price": "0.00"},
+        )
+        self.assertEqual(free_ticket_response.status_code, 302)
+        self.assertTrue(
+            Ticket.objects.filter(
+                registration=self.registration,
+                price="0.00",
+            ).exists()
+        )
+
+        cases = [
+            ("-1.00", "Le prix du billet ne peut pas être négatif."),
+            ("not-a-price", "Saisissez un montant valide, par exemple 25,00."),
+        ]
+        initial_count = Ticket.objects.count()
+
+        for price, expected_error in cases:
+            with self.subTest(price=price):
+                response = self.client.post(
+                    create_url,
+                    {**base_payload, "price": price},
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, expected_error)
+                self.assertEqual(Ticket.objects.count(), initial_count)
+
     def test_create_update_and_delete_related_records(self):
+        attendance_registration = Registration.objects.create(
+            user=self.user,
+            event_id=12,
+            status=Registration.STATUS_CONFIRMED,
+            ticket_type=Registration.TICKET_TYPE_STANDARD,
+            payment_status=Registration.PAYMENT_PAID,
+        )
+        attendance_ticket = Ticket.objects.create(
+            registration=attendance_registration,
+            price="10.00",
+            status=Ticket.STATUS_AVAILABLE,
+        )
+        replacement_ticket = Ticket.objects.create(
+            registration=attendance_registration,
+            price="10.00",
+            status=Ticket.STATUS_AVAILABLE,
+        )
         cases = [
             (
                 "tickets",
                 {
                     "registration": self.registration.pk,
-                    "qr_code": "QR-NEW-02",
                     "price": "40.00",
                     "category": Ticket.CATEGORY_VIP,
                     "status": Ticket.STATUS_AVAILABLE,
                 },
                 Ticket,
-                "qr_code",
-                "QR-NEW-02",
-                "QR-UPDATED-02",
+                "category",
+                Ticket.CATEGORY_VIP,
+                Ticket.CATEGORY_GROUP,
             ),
             (
                 "attendances",
                 {
-                    "ticket": self.ticket.pk,
+                    "ticket": attendance_ticket.pk,
+                    "access_point": self.access_point.pk,
                     "check_in": "",
                     "check_out": "",
-                    "gate": "Portail B",
                 },
                 Attendance,
-                "gate",
-                "Portail B",
-                "Portail C",
+                "ticket",
+                attendance_ticket,
+                replacement_ticket,
             ),
             (
                 "access-points",
@@ -338,7 +509,11 @@ class RegistrationAccessCrudTests(TestCase):
                 record = model.objects.get(**{changed_field: initial_value})
 
                 update_payload = dict(payload)
-                update_payload[changed_field] = updated_value
+                update_payload[changed_field] = (
+                    updated_value.pk
+                    if hasattr(updated_value, "pk")
+                    else updated_value
+                )
                 update_url = reverse(
                     "registration_access:entity_update",
                     args=[entity, record.pk],
@@ -346,7 +521,17 @@ class RegistrationAccessCrudTests(TestCase):
                 response = self.client.post(update_url, update_payload)
                 self.assertEqual(response.status_code, 302)
                 record.refresh_from_db()
-                self.assertEqual(getattr(record, changed_field), updated_value)
+                actual_value = (
+                    getattr(record, f"{changed_field}_id")
+                    if hasattr(updated_value, "pk")
+                    else getattr(record, changed_field)
+                )
+                expected_value = (
+                    updated_value.pk
+                    if hasattr(updated_value, "pk")
+                    else updated_value
+                )
+                self.assertEqual(actual_value, expected_value)
 
                 delete_url = reverse(
                     "registration_access:entity_delete",
@@ -367,9 +552,136 @@ class RegistrationAccessCrudTests(TestCase):
     def test_attendance_rejects_checkout_before_checkin(self):
         attendance = Attendance(
             ticket=self.ticket,
-            gate="Portail A",
+            access_point=self.access_point,
             check_in=timezone.now(),
             check_out=timezone.now() - timedelta(hours=1),
         )
         with self.assertRaisesMessage(ValidationError, "sortie"):
             attendance.full_clean()
+
+    def test_check_in_and_check_out_validate_ticket_and_access_point(self):
+        response = self.client.post(
+            reverse("registration_access:attendance_check_in"),
+            {
+                "code": self.ticket.code,
+                "access_point": self.access_point.pk,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        attendance = Attendance.objects.get(
+            ticket=self.ticket,
+            check_in__isnull=False,
+        )
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.STATUS_USED)
+        self.assertEqual(self.access_point.current_occupancy, 1)
+
+        response = self.client.post(
+            reverse("registration_access:attendance_check_out", args=[attendance.pk])
+        )
+        self.assertEqual(response.status_code, 302)
+        attendance.refresh_from_db()
+        self.ticket.refresh_from_db()
+        self.assertIsNotNone(attendance.check_out)
+        self.assertEqual(self.ticket.status, Ticket.STATUS_USED)
+        self.assertEqual(self.access_point.current_occupancy, 0)
+
+        response = self.client.post(
+            reverse("registration_access:attendance_check_in"),
+            {
+                "code": self.ticket.code,
+                "access_point": self.access_point.pk,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "n’est pas valide")
+        self.assertEqual(
+            Attendance.objects.filter(ticket=self.ticket, check_in__isnull=False).count(),
+            1,
+        )
+
+    def test_check_in_enforces_event_match_and_point_capacity(self):
+        other_event_point = AccessPoint.objects.create(
+            event_id=99,
+            name="Entrée autre événement",
+            location="Hall Sud",
+            capacity=2,
+        )
+        response = self.client.post(
+            reverse("registration_access:attendance_check_in"),
+            {
+                "code": self.ticket.code,
+                "access_point": other_event_point.pk,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "autre événement")
+
+        self.access_point.capacity = 1
+        self.access_point.save()
+        response = self.client.post(
+            reverse("registration_access:attendance_check_in"),
+            {
+                "code": self.ticket.code,
+                "access_point": self.access_point.pk,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+
+        second_registration = Registration.objects.create(
+            user=self.user,
+            event_id=12,
+            status=Registration.STATUS_CONFIRMED,
+            ticket_type=Registration.TICKET_TYPE_STANDARD,
+            payment_status=Registration.PAYMENT_PAID,
+        )
+        second_ticket = Ticket.objects.create(
+            registration=second_registration,
+            price="10.00",
+            status=Ticket.STATUS_AVAILABLE,
+        )
+        response = self.client.post(
+            reverse("registration_access:attendance_check_in"),
+            {
+                "code": second_ticket.code,
+                "access_point": self.access_point.pk,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "capacité maximale")
+        self.assertFalse(Attendance.objects.filter(ticket=second_ticket).exists())
+
+    def test_checked_in_attendance_cannot_be_deleted_or_registration_cancelled(self):
+        attendance = Attendance.objects.create(
+            ticket=self.ticket,
+            access_point=self.access_point,
+            check_in=timezone.now(),
+        )
+        self.ticket.status = Ticket.STATUS_USED
+        self.ticket.save(update_fields=["status"])
+
+        response = self.client.post(
+            reverse(
+                "registration_access:entity_delete",
+                args=["attendances", attendance.pk],
+            )
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Attendance.objects.filter(pk=attendance.pk).exists())
+
+        response = self.client.post(
+            reverse(
+                "registration_access:entity_update",
+                args=["registrations", self.registration.pk],
+            ),
+            {
+                "user": self.user.pk,
+                "event_id": 12,
+                "status": Registration.STATUS_CANCELLED,
+                "ticket_type": Registration.TICKET_TYPE_STANDARD,
+                "payment_status": Registration.PAYMENT_REFUNDED,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.registration.refresh_from_db()
+        self.assertEqual(self.registration.status, Registration.STATUS_CONFIRMED)

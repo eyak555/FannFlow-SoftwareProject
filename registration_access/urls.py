@@ -6,6 +6,8 @@ app_name = "registration_access"
 
 urlpatterns = [
     path("", views.module_home, name="home"),
+    path("attendances/check-in/", views.AttendanceCheckInView.as_view(), name="attendance_check_in"),
+    path("attendances/<int:pk>/check-out/", views.AttendanceCheckOutView.as_view(), name="attendance_check_out"),
     path("<slug:entity>/nouveau/", views.entity_view("create"), name="entity_create"),
     path("<slug:entity>/<int:pk>/modifier/", views.entity_view("update"), name="entity_update"),
     path("<slug:entity>/<int:pk>/supprimer/", views.entity_view("delete"), name="entity_delete"),

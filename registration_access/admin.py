@@ -11,15 +11,16 @@ class RegistrationAdmin(admin.ModelAdmin):
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    list_display = ("id", "registration", "qr_code", "category", "price", "status")
+    list_display = ("id", "registration", "code", "category", "price", "status")
     list_filter = ("category", "status")
-    search_fields = ("qr_code",)
+    search_fields = ("code", "registration__user__username")
 
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ("id", "ticket", "check_in", "check_out", "gate")
-    search_fields = ("gate", "ticket__qr_code")
+    list_display = ("id", "ticket", "access_point", "check_in", "check_out")
+    list_filter = ("access_point",)
+    search_fields = ("access_point__name", "ticket__code")
 
 
 @admin.register(AccessPoint)

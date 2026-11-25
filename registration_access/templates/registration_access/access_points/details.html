@@ -6,7 +6,8 @@
   <dl class="detail-grid">
     <div class="detail-item"><dt class="detail-label">Événement</dt><dd class="detail-value">{{ access_point.event_id }}</dd></div>
     <div class="detail-item"><dt class="detail-label">Localisation</dt><dd class="detail-value">{{ access_point.location }}</dd></div>
-    <div class="detail-item"><dt class="detail-label">Capacité</dt><dd class="detail-value">{{ access_point.capacity }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Capacité maximale simultanée</dt><dd class="detail-value">{{ access_point.capacity }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Présents</dt><dd class="detail-value">{{ current_occupancy }}</dd></div>
   </dl>
   <a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'access-points' %}">Retour aux points d’accès</a>
 </section>

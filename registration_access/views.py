@@ -1,21 +1,56 @@
 from django.shortcuts import render
 from django.db import transaction
 from django.db.models import Count, Q, Sum
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView, View
 
 from .entities import MODULE
-from .forms import AccessPointForm, AttendanceForm, RegistrationForm, TicketForm
+from .forms import AccessPointForm, AttendanceForm, CheckInForm, RegistrationForm, TicketForm
 from .models import AccessPoint, Attendance, Registration, Ticket
 from .qr_codes import qr_code_data_uri
 from .services import (
     create_registration_ticket,
+    check_in_ticket,
+    check_out_attendance,
+    save_attendance,
     sync_registration_tickets,
     ticket_is_ready_for_qr,
 )
 
 
-class RegistrationListView(ListView):
+class RegistrationAccessListView(ListView):
+    page_size_options = (10, 25, 50, 75, 100)
+    default_page_size = 25
+
+    def get_page_size(self):
+        try:
+            page_size = int(self.request.GET.get("per_page", self.default_page_size))
+        except (TypeError, ValueError):
+            return self.default_page_size
+        return page_size if page_size in self.page_size_options else self.default_page_size
+
+    def get_paginate_by(self, queryset):
+        return self.get_page_size()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query_params = self.request.GET.copy()
+        query_params.pop(self.page_kwarg, None)
+        query_params["per_page"] = str(self.get_page_size())
+        context["pagination_query"] = query_params.urlencode()
+        filter_params = self.request.GET.copy()
+        filter_params.pop(self.page_kwarg, None)
+        filter_params.pop("per_page", None)
+        context["pagination_filters"] = list(filter_params.items())
+        context["page_size_options"] = self.page_size_options
+        context["selected_page_size"] = self.get_page_size()
+        return context
+
+
+class RegistrationListView(RegistrationAccessListView):
     model = Registration
     template_name = "registration_access/registrations/list.html"
     context_object_name = "registrations"
@@ -114,8 +149,17 @@ class RegistrationDeleteView(DeleteView):
     context_object_name = "registration"
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "registrations"})
 
+    def form_valid(self, form):
+        if self.object.tickets.filter(attendances__isnull=False).exists():
+            messages.error(
+                self.request,
+                "Cette inscription possède des présences enregistrées. Supprimez d’abord les brouillons ; les entrées effectuées doivent être conservées.",
+            )
+            return HttpResponseRedirect(self.get_success_url())
+        return super().form_valid(form)
 
-class TicketListView(ListView):
+
+class TicketListView(RegistrationAccessListView):
     model = Ticket
     template_name = "registration_access/tickets/list.html"
     context_object_name = "tickets"
@@ -129,7 +173,7 @@ class TicketListView(ListView):
 
         if self.search_query:
             search_filter = (
-                Q(qr_code__icontains=self.search_query)
+                Q(code__icontains=self.search_query)
                 | Q(registration__user__username__icontains=self.search_query)
                 | Q(registration__user__first_name__icontains=self.search_query)
                 | Q(registration__user__last_name__icontains=self.search_query)
@@ -173,7 +217,7 @@ class TicketDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if ticket_is_ready_for_qr(self.object):
-            context["qr_code_image"] = qr_code_data_uri(self.object.qr_code)
+            context["qr_code_image"] = qr_code_data_uri(self.object.code)
         return context
 
 
@@ -197,8 +241,17 @@ class TicketDeleteView(DeleteView):
     context_object_name = "ticket"
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "tickets"})
 
+    def form_valid(self, form):
+        if self.object.attendances.exists():
+            messages.error(
+                self.request,
+                "Ce billet possède des présences liées et ne peut pas être supprimé.",
+            )
+            return HttpResponseRedirect(self.get_success_url())
+        return super().form_valid(form)
 
-class AttendanceListView(ListView):
+
+class AttendanceListView(RegistrationAccessListView):
     model = Attendance
     template_name = "registration_access/attendances/list.html"
     context_object_name = "attendances"
@@ -206,6 +259,7 @@ class AttendanceListView(ListView):
         "ticket",
         "ticket__registration",
         "ticket__registration__user",
+        "access_point",
     )
 
     def get_queryset(self):
@@ -214,13 +268,14 @@ class AttendanceListView(ListView):
         self.selected_state = self.request.GET.get("state", "")
 
         if self.search_query:
-            queryset = queryset.filter(
-                Q(gate__icontains=self.search_query)
-                | Q(ticket__qr_code__icontains=self.search_query)
+            search_filter = (
+                Q(access_point__name__icontains=self.search_query)
+                | Q(ticket__code__icontains=self.search_query)
                 | Q(ticket__registration__user__username__icontains=self.search_query)
                 | Q(ticket__registration__user__first_name__icontains=self.search_query)
                 | Q(ticket__registration__user__last_name__icontains=self.search_query)
             )
+            queryset = queryset.filter(search_filter)
 
         if self.selected_state == "checked_in":
             queryset = queryset.filter(
@@ -270,12 +325,30 @@ class AttendanceCreateView(CreateView):
     form_class = AttendanceForm
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "attendances"})
 
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                self.object = save_attendance(form.save(commit=False))
+        except ValidationError as error:
+            form.add_error(None, error)
+            return self.form_invalid(form)
+        return HttpResponseRedirect(self.get_success_url())
+
 
 class AttendanceUpdateView(UpdateView):
     model = Attendance
     template_name = "registration_access/attendances/forms.html"
     form_class = AttendanceForm
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "attendances"})
+
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                self.object = save_attendance(form.save(commit=False))
+        except ValidationError as error:
+            form.add_error(None, error)
+            return self.form_invalid(form)
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class AttendanceDeleteView(DeleteView):
@@ -284,14 +357,73 @@ class AttendanceDeleteView(DeleteView):
     context_object_name = "attendance"
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "attendances"})
 
+    def form_valid(self, form):
+        if self.object.check_in:
+            messages.error(
+                self.request,
+                "Une présence avec une entrée enregistrée ne peut pas être supprimée.",
+            )
+            return HttpResponseRedirect(self.get_success_url())
+        return super().form_valid(form)
 
-class AccessPointListView(ListView):
+
+class AttendanceCheckInView(FormView):
+    template_name = "registration_access/attendances/check_in.html"
+    form_class = CheckInForm
+    success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "attendances"})
+
+    def form_valid(self, form):
+        try:
+            attendance = check_in_ticket(
+                form.cleaned_data["code"],
+                form.cleaned_data["access_point"],
+            )
+        except ValidationError as error:
+            form.add_error(None, error)
+            return self.form_invalid(form)
+        messages.success(
+            self.request,
+            f"Entrée enregistrée pour {attendance.ticket.registration.user}.",
+        )
+        return HttpResponseRedirect(
+            reverse_lazy(
+                "registration_access:entity_detail",
+                kwargs={"entity": "attendances", "pk": attendance.pk},
+            )
+        )
+
+
+class AttendanceCheckOutView(View):
+    def post(self, request, pk):
+        try:
+            attendance = check_out_attendance(pk)
+        except ValidationError as error:
+            messages.error(request, error.message)
+        else:
+            messages.success(
+                request,
+                f"Sortie enregistrée pour {attendance.ticket.registration.user}.",
+            )
+        return HttpResponseRedirect(
+            reverse_lazy("registration_access:entity_list", kwargs={"entity": "attendances"})
+        )
+
+
+class AccessPointListView(RegistrationAccessListView):
     model = AccessPoint
     template_name = "registration_access/access_points/list.html"
     context_object_name = "access_points"
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().annotate(
+            occupancy=Count(
+                "attendances",
+                filter=Q(
+                    attendances__check_in__isnull=False,
+                    attendances__check_out__isnull=True,
+                ),
+            )
+        ).order_by("pk")
         self.search_query = self.request.GET.get("q", "").strip()
         if self.search_query:
             search_filter = (
@@ -310,6 +442,13 @@ class AccessPointListView(ListView):
             "access_point_stats": AccessPoint.objects.aggregate(
                 total=Count("pk"),
                 capacity=Sum("capacity"),
+                on_site=Count(
+                    "attendances",
+                    filter=Q(
+                        attendances__check_in__isnull=False,
+                        attendances__check_out__isnull=True,
+                    ),
+                ),
             ),
         })
         return context
@@ -319,6 +458,11 @@ class AccessPointDetailView(DetailView):
     model = AccessPoint
     template_name = "registration_access/access_points/details.html"
     context_object_name = "access_point"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["current_occupancy"] = self.object.current_occupancy
+        return context
 
 
 class AccessPointCreateView(CreateView):
@@ -340,6 +484,15 @@ class AccessPointDeleteView(DeleteView):
     template_name = "registration_access/access_points/delete_confirmation.html"
     context_object_name = "access_point"
     success_url = reverse_lazy("registration_access:entity_list", kwargs={"entity": "access-points"})
+
+    def form_valid(self, form):
+        if self.object.attendances.exists():
+            messages.error(
+                self.request,
+                "Ce point d’accès possède des présences liées et ne peut pas être supprimé.",
+            )
+            return HttpResponseRedirect(self.get_success_url())
+        return super().form_valid(form)
 
 
 def module_home(request):

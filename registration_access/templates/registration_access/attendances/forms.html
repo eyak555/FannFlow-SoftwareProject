@@ -5,6 +5,6 @@
   <p class="eyebrow">Suivi des présences</p>
   <h1>{% if object %}Modifier la présence{% else %}Nouvelle présence{% endif %}</h1>
   <p class="page-intro">{% if object %}Mettez à jour les informations de présence.{% else %}Enregistrez l’entrée ou la sortie d’un participant.{% endif %}</p>
-  <form class="ff-form app-form" method="post">{% csrf_token %}{{ form.as_p }}<div class="form-actions"><button class="btn btn-primary" type="submit">Enregistrer</button><a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'attendances' %}">Annuler</a></div></form>
+  <form class="ff-form app-form" method="post" novalidate>{% csrf_token %}{{ form.as_p }}<div class="form-actions"><button class="btn btn-primary" type="submit">Enregistrer</button><a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'attendances' %}">Annuler</a></div></form>
 </section>
 {% endblock %}

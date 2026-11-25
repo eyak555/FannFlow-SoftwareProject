@@ -1,0 +1,14 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<section class="page-card page-card--narrow">
+  <p class="eyebrow">Contrôle des billets</p>
+  <h1>Enregistrer une entrée</h1>
+  <p class="page-intro">Saisissez le code du billet présenté et choisissez le point d’accès. Le billet doit être valide et la capacité disponible.</p>
+  <form class="ff-form app-form" method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Valider l’entrée</button><a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'attendances' %}">Annuler</a></div>
+  </form>
+</section>
+{% endblock %}
