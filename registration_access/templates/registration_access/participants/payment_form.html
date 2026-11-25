@@ -1,0 +1,52 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<section class="page-card page-card--narrow">
+  <p class="eyebrow">Confirmation du billet</p>
+  <h1>{% if payment_required %}Paiement du billet{% else %}Confirmation du billet gratuit{% endif %}</h1>
+  <p class="page-intro">Événement {{ registration.event_id }} · {{ registration.get_ticket_type_display }}</p>
+
+  <dl class="detail-grid">
+    {% for ticket in tickets %}
+      <div class="detail-item"><dt class="detail-label">Billet {{ ticket.code }}</dt><dd class="detail-value">{{ ticket.price }}</dd></div>
+    {% endfor %}
+    <div class="detail-item"><dt class="detail-label">Total</dt><dd class="detail-value">{{ total_amount }}</dd></div>
+  </dl>
+
+  {% if payment_required %}
+    <p class="hint">Les champs de carte servent à la démonstration ; leur contenu n’est ni transmis ni enregistré.</p>
+  {% else %}
+    <p class="page-intro">Le montant est nul : aucun paiement n’est requis pour confirmer ce billet.</p>
+  {% endif %}
+
+  <form class="ff-form app-form" method="post" autocomplete="off">
+    {% csrf_token %}
+    {% if payment_required %}
+      <div class="detail-grid">
+        <div class="field">
+          <label for="cardholder-name">Nom du titulaire</label>
+          <input class="ff-input" id="cardholder-name" type="text" maxlength="100" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="card-number">Numéro de carte</label>
+          <input class="ff-input" id="card-number" type="text" inputmode="numeric" maxlength="32" placeholder="1234 5678 9012 3456" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="card-expiration">Date d’expiration</label>
+          <input class="ff-input" id="card-expiration" type="text" maxlength="7" placeholder="MM/AA" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="card-security-code">Cryptogramme visuel (CVV)</label>
+          <input class="ff-input" id="card-security-code" type="text" inputmode="numeric" maxlength="4" placeholder="123" autocomplete="off" required>
+        </div>
+      </div>
+    {% else %}
+      {{ form.as_p }}
+    {% endif %}
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">{% if payment_required %}Simuler le paiement{% else %}Confirmer mon billet{% endif %}</button>
+      <a class="btn btn-secondary" href="{% url 'registration_access:my_tickets' %}">Retour à mes billets</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<header class="page-header registration-heading">
+  <div>
+    <p class="eyebrow">Espace participant</p>
+    <h1>Mes inscriptions</h1>
+    <p class="lede">Suivez vos demandes d’inscription et leur validation.</p>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn btn-primary" href="{% url 'registration_access:registration_request' %}">M’inscrire à un événement</a>
+  </div>
+</header>
+
+<section class="registration-table-panel" aria-label="Mes inscriptions">
+  <div class="registration-table-heading">
+    <div><h2>Mes demandes</h2><p>{{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize:"s" }}</p></div>
+  </div>
+  <div class="table-wrap registration-table-wrap">
+    <table class="data-table registration-table">
+      <thead>
+        <tr><th scope="col">Événement</th><th scope="col">Catégorie</th><th scope="col">Inscription</th><th scope="col">Paiement</th><th scope="col">Billet</th><th scope="col">Action</th></tr>
+      </thead>
+      <tbody>
+        {% for registration in registrations %}
+          <tr>
+            <td>Événement {{ registration.event_id }}</td>
+            <td>{{ registration.get_ticket_type_display }}</td>
+            <td>{{ registration.get_status_display }}</td>
+            <td>{{ registration.get_payment_status_display }}</td>
+            <td>
+              {% for ticket in registration.tickets.all %}
+                <a class="ticket-code" href="{% url 'registration_access:my_ticket_detail' ticket.pk %}">{{ ticket.code }}</a>
+              {% empty %}En préparation{% endfor %}
+            </td>
+            <td>
+              {% if registration.status == "pending" and registration.payment_status == "pending" %}
+                <form method="post" action="{% url 'registration_access:registration_cancel' registration.pk %}">
+                  {% csrf_token %}
+                  <button class="table-action table-action--delete" type="submit">Annuler</button>
+                </form>
+              {% else %}
+                <span>—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td class="empty-cell" colspan="6"><div class="registration-empty"><span aria-hidden="true">◎</span><h2>Aucune inscription</h2><p>Vos demandes apparaîtront ici.</p><a class="text-link" href="{% url 'registration_access:registration_request' %}">Choisir un événement</a></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% include "core/components/pagination.html" %}
+{% endblock %}

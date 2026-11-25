@@ -9,11 +9,24 @@
   <section class="access-hero">
     <div class="access-hero__copy">
       <p class="eyebrow">Registration &amp; Access</p>
-      <h1>De l’inscription à l’entrée, chaque étape en harmonie.</h1>
-      <p>Un espace clair pour accueillir les participants, suivre les billets et organiser les accès à vos événements culturels.</p>
+      {% if is_administrator %}
+        <h1>De l’inscription à l’entrée, chaque étape en harmonie.</h1>
+        <p>Gérez les inscriptions, les billets et l’accueil des participants à vos événements culturels.</p>
+      {% else %}
+        <h1>Préparez votre prochaine sortie culturelle.</h1>
+        <p>Inscrivez-vous à un événement et retrouvez vos inscriptions et billets dans votre espace personnel.</p>
+      {% endif %}
       <div class="access-hero__actions">
-        <a class="btn btn-primary" href="{% url 'registration_access:entity_list' 'registrations' %}">Voir les inscriptions</a>
-        <a class="btn btn-secondary" href="{% url 'registration_access:entity_create' 'registrations' %}">Ajouter un participant</a>
+        {% if is_administrator %}
+          <a class="btn btn-primary" href="{% url 'registration_access:entity_list' 'registrations' %}">Gérer les inscriptions</a>
+          <a class="btn btn-secondary" href="{% url 'registration_access:entity_create' 'registrations' %}">Créer une inscription</a>
+        {% elif user.is_authenticated %}
+          <a class="btn btn-primary" href="{% url 'registration_access:registration_request' %}">M’inscrire à un événement</a>
+          <a class="btn btn-secondary" href="{% url 'registration_access:my_registrations' %}">Mes inscriptions</a>
+        {% else %}
+          <a class="btn btn-primary" href="{% url 'users_teams:register' %}">Créer un compte participant</a>
+          <a class="btn btn-secondary" href="{% url 'users_teams:login' %}">Se connecter</a>
+        {% endif %}
       </div>
     </div>
     <div class="access-hero__art" aria-hidden="true">
@@ -29,6 +42,7 @@
     </div>
   </section>
 
+  {% if is_administrator %}
   <section class="access-areas" aria-labelledby="access-areas-title">
     <header class="section-heading access-section-heading">
       <div>
@@ -60,5 +74,33 @@
       {% endfor %}
     </div>
   </section>
+  {% elif user.is_authenticated %}
+  <section class="access-areas" aria-labelledby="access-areas-title">
+    <header class="section-heading access-section-heading">
+      <div>
+        <p class="eyebrow">Votre espace</p>
+        <h2 id="access-areas-title">Vos inscriptions et billets</h2>
+        <p class="access-section-intro">Confirmez un billet gratuit ou simulez le paiement d’un billet payant. Aucun débit réel n’est effectué ; le paiement en ligne sera intégré au Sprint 2.</p>
+      </div>
+    </header>
+    <div class="access-area-grid">
+      <article class="access-area-card">
+        <h3>Mes inscriptions</h3>
+        <p>Suivez le statut de vos demandes et annulez une demande encore en attente.</p>
+        <div class="access-area-card__actions">
+          <a href="{% url 'registration_access:my_registrations' %}">Consulter</a>
+          <a href="{% url 'registration_access:registration_request' %}">Nouvelle inscription <span aria-hidden="true">+</span></a>
+        </div>
+      </article>
+      <article class="access-area-card">
+        <h3>Mes billets</h3>
+        <p>Retrouvez les billets qui vous ont été attribués et leur état de validation.</p>
+        <div class="access-area-card__actions">
+          <a href="{% url 'registration_access:my_tickets' %}">Consulter mes billets</a>
+        </div>
+      </article>
+    </div>
+  </section>
+  {% endif %}
 
 {% endblock %}

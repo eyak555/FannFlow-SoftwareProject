@@ -28,6 +28,43 @@ class RegistrationForm(FannFlowModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        status = cleaned_data.get("status")
+        payment_status = cleaned_data.get("payment_status")
+
+        if payment_status == Registration.PAYMENT_PAID:
+            if status == Registration.STATUS_CANCELLED:
+                self.add_error(
+                    "payment_status",
+                    "Une inscription annulée ne peut pas être marquée comme payée.",
+                )
+            else:
+                cleaned_data["status"] = Registration.STATUS_CONFIRMED
+        elif payment_status == Registration.PAYMENT_NOT_REQUIRED:
+            has_paid_ticket = (
+                not self.instance.pk
+                or self.instance.tickets.filter(price__gt=0).exists()
+            )
+            if status == Registration.STATUS_CANCELLED or has_paid_ticket:
+                self.add_error(
+                    "payment_status",
+                    "« Sans paiement » est réservé aux billets gratuits non annulés.",
+                )
+            else:
+                cleaned_data["status"] = Registration.STATUS_CONFIRMED
+        elif payment_status == Registration.PAYMENT_REFUNDED:
+            cleaned_data["status"] = Registration.STATUS_CANCELLED
+        elif (
+            status == Registration.STATUS_CONFIRMED
+            and (
+                not self.instance.pk
+                or self.instance.tickets.filter(price__gt=0).exists()
+            )
+        ):
+            self.add_error(
+                "payment_status",
+                "Le paiement doit être validé avant de confirmer cette inscription.",
+            )
+
         if self.instance.pk and self.instance.tickets.filter(
             status=Ticket.STATUS_USED
         ).exists():
@@ -45,6 +82,38 @@ class RegistrationForm(FannFlowModelForm):
                     "Une inscription avec un billet déjà utilisé ne peut plus être modifiée."
                 )
         return cleaned_data
+
+
+class ParticipantRegistrationForm(FannFlowModelForm):
+    class Meta:
+        model = Registration
+        fields = ("event_id", "ticket_type")
+        labels = {
+            "event_id": "Numéro de l’événement",
+            "ticket_type": "Catégorie de billet souhaitée",
+        }
+        error_messages = {
+            "event_id": {
+                "required": "Veuillez saisir le numéro de l’événement.",
+            },
+            "ticket_type": {
+                "required": "Veuillez choisir une catégorie de billet.",
+            },
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["event_id"].widget.attrs["min"] = 1
+
+
+class PrototypePaymentForm(forms.Form):
+    pass
+
+
+class FreeTicketConfirmationForm(FannFlowFormMixin, forms.Form):
+    confirmation = forms.BooleanField(
+        label="Je confirme cette inscription gratuite.",
+    )
 
 
 class TicketForm(FannFlowModelForm):

@@ -4,7 +4,7 @@
 <section class="page-card page-card--narrow">
   <p class="eyebrow">Gestion des inscriptions</p>
   <h1>{% if object %}Modifier l’inscription{% else %}Nouvelle inscription{% endif %}</h1>
-  <p class="page-intro">{% if object %}Mettez à jour les informations de l’inscription.{% else %}Renseignez les informations de l’inscription à ajouter.{% endif %}</p>
+  <p class="page-intro">{% if object %}Marquer le paiement comme reçu confirme automatiquement l’inscription et active le billet.{% else %}Renseignez les informations de l’inscription à ajouter.{% endif %} Le paiement est validé manuellement dans ce prototype ; la passerelle en ligne sera intégrée au Sprint 2.</p>
   <form class="ff-form app-form" method="post" novalidate>
     {% csrf_token %}
     {{ form.as_p }}

@@ -1,0 +1,17 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<section class="page-card page-card--narrow">
+  <p class="eyebrow">Espace participant</p>
+  <h1>Demande d’inscription</h1>
+  <p class="page-intro">Votre compte sera automatiquement associé à cette demande. Le catalogue d’événements n’étant pas encore connecté, saisissez l’identifiant communiqué par l’administration. Le paiement en ligne sera intégré au Sprint 2 ; la validation est manuelle dans ce prototype.</p>
+  <form class="ff-form app-form" method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Confirmer ma demande</button>
+      <a class="btn btn-secondary" href="{% url 'registration_access:my_registrations' %}">Annuler</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

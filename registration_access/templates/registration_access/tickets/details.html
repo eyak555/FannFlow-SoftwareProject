@@ -2,7 +2,7 @@
 
 {% block content %}
 <section class="page-card">
-  <header class="page-heading"><div><p class="eyebrow">Fiche billet</p><h1>{{ ticket }}</h1><p class="page-intro">Détails du billet et de son détenteur.</p></div>{% if user.is_authenticated %}<a class="btn btn-primary" href="{% url 'registration_access:entity_update' 'tickets' ticket.pk %}">Modifier le billet</a>{% endif %}</header>
+  <header class="page-heading"><div><p class="eyebrow">Fiche billet</p><h1>{{ ticket }}</h1><p class="page-intro">Détails du billet et de son détenteur.</p></div>{% if user.is_administrator %}<a class="btn btn-primary" href="{% url 'registration_access:entity_update' 'tickets' ticket.pk %}">Modifier le billet</a>{% endif %}</header>
   <dl class="detail-grid">
     <div class="detail-item"><dt class="detail-label">Code billet</dt><dd class="detail-value data">{{ ticket.code }}</dd></div>
     <div class="detail-item"><dt class="detail-label">Inscription</dt><dd class="detail-value">{{ ticket.registration }}</dd></div>
@@ -22,6 +22,13 @@
   {% else %}
     <p class="ticket-qr-pending">Le QR sera disponible après confirmation de l’inscription et, si nécessaire, du paiement.</p>
   {% endif %}
-  <a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'tickets' %}">Retour aux billets</a>
+  {% if not user.is_administrator and ticket.status == "pending" and ticket.registration.status == "pending" and ticket.registration.payment_status == "pending" %}
+    <a class="btn btn-primary" href="{% url 'registration_access:registration_confirm' ticket.registration.pk %}">{% if ticket.price > 0 %}Continuer vers le paiement{% else %}Confirmer le billet gratuit{% endif %}</a>
+  {% endif %}
+  {% if user.is_administrator %}
+    <a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'tickets' %}">Retour aux billets</a>
+  {% else %}
+    <a class="btn btn-secondary" href="{% url 'registration_access:my_tickets' %}">Retour à mes billets</a>
+  {% endif %}
 </section>
 {% endblock %}

@@ -6,6 +6,8 @@ from django.utils import timezone
 
 from .models import AccessPoint, Attendance, Registration, Ticket
 
+PROTOTYPE_TICKET_PRICE = Decimal("10.00")
+
 
 def ticket_category_for_registration(registration):
     ticket_type = registration.ticket_type.strip().casefold()
@@ -18,10 +20,10 @@ def ticket_category_for_registration(registration):
 def ticket_status_for_registration(registration, ticket):
     if ticket.status == Ticket.STATUS_USED:
         return Ticket.STATUS_USED
-    if registration.status == Registration.STATUS_CANCELLED:
-        return Ticket.STATUS_CANCELLED
     if registration.payment_status == Registration.PAYMENT_REFUNDED:
         return Ticket.STATUS_REFUND
+    if registration.status == Registration.STATUS_CANCELLED:
+        return Ticket.STATUS_CANCELLED
     if registration.status == Registration.STATUS_CONFIRMED and (
         ticket.price == Decimal("0.00")
         or registration.payment_status == Registration.PAYMENT_PAID
@@ -48,7 +50,7 @@ def ticket_is_ready_for_qr(ticket):
 def create_registration_ticket(registration):
     ticket = Ticket.objects.create(
         registration=registration,
-        price=Decimal("0.00"),
+        price=PROTOTYPE_TICKET_PRICE,
         category=ticket_category_for_registration(registration),
         status=Ticket.STATUS_PENDING,
     )
@@ -73,6 +75,41 @@ def sync_registration_tickets(registration):
             changed_fields.append("category")
         if changed_fields:
             ticket.save(update_fields=changed_fields)
+
+
+@transaction.atomic
+def confirm_participant_registration(registration_id, user):
+    registration = Registration.objects.select_for_update().get(
+        pk=registration_id,
+        user=user,
+    )
+
+    if (
+        registration.status != Registration.STATUS_PENDING
+        or registration.payment_status != Registration.PAYMENT_PENDING
+    ):
+        raise ValidationError("Cette inscription n’est plus en attente de confirmation.")
+
+    tickets = list(
+        Ticket.objects.select_for_update()
+        .filter(registration=registration)
+        .order_by("pk")
+    )
+    if not tickets:
+        raise ValidationError("Aucun billet n’est associé à cette inscription.")
+    if any(ticket.status != Ticket.STATUS_PENDING for ticket in tickets):
+        raise ValidationError("Un billet associé n’est pas en attente de confirmation.")
+
+    payment_required = any(ticket.price > Decimal("0.00") for ticket in tickets)
+    registration.status = Registration.STATUS_CONFIRMED
+    registration.payment_status = (
+        Registration.PAYMENT_PAID
+        if payment_required
+        else Registration.PAYMENT_NOT_REQUIRED
+    )
+    registration.save(update_fields=["status", "payment_status"])
+    sync_registration_tickets(registration)
+    return registration
 
 
 @transaction.atomic

@@ -4,7 +4,7 @@
 <section class="page-card page-card--narrow">
   <p class="eyebrow">Gestion des billets</p>
   <h1>{% if object %}Modifier le billet{% else %}Nouveau billet{% endif %}</h1>
-  <p class="page-intro">{% if object %}Mettez à jour les informations du billet.{% else %}Renseignez les informations du billet à émettre.{% endif %}</p>
+  <p class="page-intro">{% if object %}Mettez à jour les informations du billet. Le prix est défini par l’administration dans ce prototype ; le paiement en ligne sera intégré au Sprint 2.{% else %}Renseignez les informations du billet à émettre.{% endif %}</p>
   <form class="ff-form app-form" method="post" novalidate>
     {% csrf_token %}
     {% if object %}

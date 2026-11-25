@@ -6,14 +6,19 @@ from .models import AccessPoint, Attendance, Registration, Ticket
 class RegistrationAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "event_id", "status", "payment_status", "registration_date")
     list_filter = ("status", "payment_status")
-    search_fields = ("user__username", "user__email", "ticket_type")
+    search_fields = ("user__first_name", "user__last_name", "user__email", "ticket_type")
 
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
     list_display = ("id", "registration", "code", "category", "price", "status")
     list_filter = ("category", "status")
-    search_fields = ("code", "registration__user__username")
+    search_fields = (
+        "code",
+        "registration__user__first_name",
+        "registration__user__last_name",
+        "registration__user__email",
+    )
 
 
 @admin.register(Attendance)
