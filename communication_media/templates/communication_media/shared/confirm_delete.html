@@ -1,0 +1,35 @@
+{% extends "core/layouts/confirm_delete.html" %}
+
+{% comment %}
+  Le gabarit du socle place « Annuler » vers la liste générique hors de tout
+  bloc : le contenu est repris ici pour annuler vers la fiche de l'élément.
+{% endcomment %}
+
+{% block extra_css %}{% include "communication_media/shared/_css.html" %}{% endblock %}
+
+{% block content %}
+  <div class="press-directory press-delete-page cm-page">
+    {% include "communication_media/shared/_breadcrumb.html" with current=breadcrumb_current %}
+
+    <header class="page-header">
+      <div><h1>{{ page_title }}</h1></div>
+    </header>
+
+    <form class="ff-form press-delete-card" method="post">
+      {% csrf_token %}
+      <p class="press-delete-question">
+        Voulez-vous vraiment supprimer {{ crud.noun|lower }} <strong>« {{ item_label }} »</strong> ?
+      </p>
+      {% if crud.slug == "media" %}
+        <p class="hint">Le fichier <span class="data">{{ item.original_filename }}</span> sera aussi effacé du serveur.</p>
+      {% elif crud.slug == "communications" and item.media.exists %}
+        <p class="hint">Les médias liés seront conservés, sans communication associée.</p>
+      {% endif %}
+      <p class="hint">Cette action est définitive.</p>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
+        <a class="btn btn-secondary" href="{{ item.get_absolute_url }}">Annuler</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

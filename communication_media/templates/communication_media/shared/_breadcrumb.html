@@ -1,0 +1,15 @@
+{% comment %}
+  Fil d'Ariane : Communication & Media › <liste> › <page courante>.
+  Variables : crud, list_url, current (facultatif).
+{% endcomment %}
+<nav class="press-breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a href="{% url 'communication_media:home' %}">{{ module.title }}</a></li>
+    {% if current %}
+      <li><a href="{{ list_url }}">{{ crud.list_title }}</a></li>
+      <li aria-current="page">{{ current|truncatechars:60 }}</li>
+    {% else %}
+      <li aria-current="page">{{ crud.list_title }}</li>
+    {% endif %}
+  </ol>
+</nav>

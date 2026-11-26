@@ -1,0 +1,8 @@
+{# Vignette d'un média : l'image elle-même, sinon une icône du type. #}
+{% if item.is_image %}
+  <img class="cm-thumb" src="{{ item.url }}" alt="" loading="lazy" width="56" height="56">
+{% else %}
+  <span class="cm-thumb cm-thumb--icon cm-thumb--{{ item.media_type }}" aria-hidden="true">
+    <i data-lucide="{% if item.is_video %}film{% elif item.is_pdf %}file-text{% elif item.media_type == 'document' %}file{% else %}image{% endif %}"></i>
+  </span>
+{% endif %}

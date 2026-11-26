@@ -1,0 +1,92 @@
+/* Communication, Médias, Dossiers de presse, Publications — Module 6.
+   Complète press_directory.css (mêmes variables du socle, mêmes boutons).
+   Chargé uniquement sur les pages de ces quatre CRUD. */
+
+.cm-page .page-header__actions .btn i { width: 16px; height: 16px; vertical-align: -3px; }
+.cm-page .press-avatar i { width: 28px; height: 28px; }
+.cm-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Statuts (communications et publications) */
+.cm-status--brouillon { background: #EFF1F3; color: #55626A; }
+.cm-status--valide { background: #E6F3F4; color: #23646E; }
+.cm-status--publie, .cm-status--publiee { background: #EAF4EC; color: #3B6E46; }
+.cm-status--programmee { background: #FFF3DC; color: #8A5A12; }
+.cm-status--archive { background: #EAF1F7; color: var(--blue); }
+.cm-status--annulee { background: #FBECEC; color: #9E3A3A; }
+
+/* Plateformes */
+.cm-platform { margin-bottom: 6px; }
+.cm-platform--facebook { background: #E8EEF9; color: #2B4C8C; }
+.cm-platform--instagram { background: #FBEAF2; color: #9B2C62; }
+.cm-platform--x { background: #ECEFF1; color: #263238; }
+.cm-platform--linkedin { background: #E6F0F8; color: #1F5E8C; }
+.cm-platform--tiktok { background: #E8F6F6; color: #1F6A6A; }
+.cm-platform--youtube { background: #FBECEC; color: #9E3A3A; }
+.cm-platform--site_web { background: #FFF3DC; color: #8A5A12; }
+.cm-excerpt { font-weight: 500; font-family: var(--font-body); font-size: .95rem; }
+
+/* Vignettes des médias */
+.cm-media-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cm-thumb { flex: 0 0 auto; width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: var(--gray-light); border: 1px solid var(--border); }
+.cm-thumb--icon { display: grid; place-items: center; color: var(--blue-secondary); }
+.cm-thumb--icon i { width: 24px; height: 24px; }
+.cm-thumb--video { background: #EAF4EC; color: #3B6E46; }
+.cm-thumb--document { background: #EAF1F7; color: var(--blue); }
+.cm-thumb--affiche { background: #FFF3DC; color: #8A5A12; }
+.press-identity .cm-thumb { width: 64px; height: 64px; border-radius: 16px; }
+
+/* Fiches */
+.cm-text { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 4px 24px; line-height: 1.65; overflow-wrap: anywhere; }
+.cm-count { margin: 8px 0 0; font-size: .8125rem; }
+.cm-preview { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.cm-preview img, .cm-preview video { display: block; max-width: 100%; max-height: 480px; margin: 0 auto 16px; border-radius: 8px; }
+.cm-preview p { margin: 0; }
+.cm-preview .btn i { width: 16px; height: 16px; vertical-align: -3px; }
+.cm-linked { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cm-linked li { display: flex; align-items: center; gap: 12px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
+.cm-linked .cm-thumb { width: 40px; height: 40px; }
+.cm-linked .press-muted { margin-left: auto; font-size: .8125rem; }
+
+/* Formulaires : zones de texte et fichier */
+.cm-page textarea.ff-input { min-height: 140px; resize: vertical; line-height: 1.5; font-family: var(--font-body); }
+.cm-page input[type="file"].ff-input { padding: 10px; background: var(--white); }
+
+@media (max-width: 720px) {
+  .cm-linked li { flex-wrap: wrap; }
+  .cm-linked .press-muted { margin-left: 0; width: 100%; }
+  .cm-text { padding: 2px 16px; }
+}
+
+/* Filtre par evenement (listes) */
+.cm-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 14px; }
+.cm-filter label { font-weight: 500; font-size: .875rem; color: var(--gray-dark); }
+.cm-filter select.ff-input { width: auto; min-width: 240px; max-width: 100%; background: var(--white); }
+.cm-warning { color: #8A5A12; }
+
+/* Cases a cocher du dossier de presse */
+.cm-choice-label { margin: 0 0 8px; font-weight: 500; }
+.cm-choices > div { display: grid; gap: 6px; }
+.cm-choices label { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--white); cursor: pointer; overflow-wrap: anywhere; }
+.cm-choices label:hover { border-color: var(--blue-secondary); }
+.cm-choices input[type="checkbox"] { margin-top: 3px; width: 16px; height: 16px; flex: 0 0 auto; accent-color: var(--blue); }
+.cm-choices [hidden] { display: none !important; }
+.cm-choice-field .hint, .cm-choice-field .press-field-errors { margin-top: 8px; }
+
+@media (max-width: 720px) {
+  .cm-filter select.ff-input { min-width: 0; flex: 1 1 100%; }
+  .cm-filter .btn { flex: 1 1 auto; }
+}
+
+/* Fenetres etroites : chaque valeur d'une carte rappelle sa colonne. */
+@media (max-width: 720px) {
+  .cm-page .data-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: #66757C;
+    font: 500 .6875rem var(--font-body);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+}
+.cm-event-summary li { flex-wrap: wrap; }

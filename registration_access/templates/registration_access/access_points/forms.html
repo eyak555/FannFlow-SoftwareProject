@@ -4,7 +4,7 @@
 <section class="page-card page-card--narrow">
   <p class="eyebrow">Accès aux événements</p>
   <h1>{% if object %}Modifier le point d’accès{% else %}Nouveau point d’accès{% endif %}</h1>
-  <p class="page-intro">{% if object %}Mettez à jour les informations de cet accès.{% else %}Renseignez les informations du point d’accès à ajouter.{% endif %}</p>
+  <p class="page-intro">{% if object %}Mettez à jour les informations de cet accès.{% else %}Renseignez les informations du point d’accès à ajouter.{% endif %} Sélectionnez l’événement à partir de son nom.</p>
   <form class="ff-form app-form" method="post" novalidate>{% csrf_token %}{{ form.as_p }}<div class="form-actions"><button class="btn btn-primary" type="submit">Enregistrer</button><a class="btn btn-secondary" href="{% url 'registration_access:entity_list' 'access-points' %}">Annuler</a></div></form>
 </section>
 {% endblock %}

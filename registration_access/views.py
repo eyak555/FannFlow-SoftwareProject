@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.shortcuts import render
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Subquery, Sum
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
@@ -184,7 +184,18 @@ class ParticipantRegistrationListView(LoginRequiredMixin, PaginationOptionsMixin
     context_object_name = "registrations"
 
     def get_queryset(self):
-        return Registration.objects.filter(user=self.request.user).prefetch_related("tickets")
+        return (
+            Registration.objects.filter(user=self.request.user)
+            .annotate(
+                requires_payment=Exists(
+                    Ticket.objects.filter(
+                        registration_id=OuterRef("pk"),
+                        price__gt=0,
+                    )
+                )
+            )
+            .prefetch_related("tickets")
+        )
 
 
 class ParticipantRegistrationCreateView(LoginRequiredMixin, CreateView):
@@ -620,6 +631,8 @@ class AccessPointListView(RegistrationAccessListView):
     context_object_name = "access_points"
 
     def get_queryset(self):
+        from events_program.models import Event
+
         queryset = super().get_queryset().annotate(
             occupancy=Count(
                 "attendances",
@@ -627,13 +640,21 @@ class AccessPointListView(RegistrationAccessListView):
                     attendances__check_in__isnull=False,
                     attendances__check_out__isnull=True,
                 ),
-            )
+            ),
+            event_name=Subquery(
+                Event.objects.filter(pk=OuterRef("event_id")).values("title")[:1]
+            ),
         ).order_by("pk")
         self.search_query = self.request.GET.get("q", "").strip()
         if self.search_query:
             search_filter = (
                 Q(name__icontains=self.search_query)
                 | Q(location__icontains=self.search_query)
+            )
+            search_filter |= Q(
+                event_id__in=Event.objects.filter(
+                    title__icontains=self.search_query
+                ).values("pk")
             )
             if self.search_query.isdecimal():
                 search_filter |= Q(event_id=int(self.search_query))
@@ -665,8 +686,13 @@ class AccessPointDetailView(AdministratorRequiredMixin, DetailView):
     context_object_name = "access_point"
 
     def get_context_data(self, **kwargs):
+        from events_program.models import Event
+
         context = super().get_context_data(**kwargs)
         context["current_occupancy"] = self.object.current_occupancy
+        context["event_name"] = Event.objects.filter(
+            pk=self.object.event_id
+        ).values_list("title", flat=True).first()
         return context
 
 

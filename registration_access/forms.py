@@ -139,16 +139,36 @@ class ParticipantRegistrationForm(FannFlowModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        self.fields["event_id"].widget.attrs["min"] = 1
-
-    def clean_event_id(self):
-        event_id = self.cleaned_data["event_id"]
         from events_program.models import Event
 
-        event = Event.objects.filter(pk=event_id).first()
-        if event is not None:
-            validate_event_registration(event, self.user)
-        return event_id
+        self.fields["event_id"] = forms.ModelChoiceField(
+            queryset=Event.objects.filter(status=Event.Status.PUBLISHED).order_by(
+                "start_date",
+                "title",
+            ),
+            label="Événement",
+            empty_label="Choisissez un événement",
+            error_messages={
+                "required": "Veuillez choisir un événement.",
+                "invalid_choice": "Choisissez un événement valide.",
+            },
+        )
+        self.fields["event_id"].label_from_instance = event_registration_label
+
+    def clean_event_id(self):
+        event = self.cleaned_data["event_id"]
+        validate_event_registration(event, self.user)
+        return event.pk
+
+
+def event_registration_label(event):
+    start_date = timezone.localtime(event.start_date).strftime("%d/%m/%Y")
+    standard_price = "Gratuit" if event.ticket_price == 0 else f"{event.ticket_price} DT"
+    vip_price = "Gratuit" if event.vip_ticket_price == 0 else f"{event.vip_ticket_price} DT"
+    return (
+        f"{event.title} — {start_date} · "
+        f"Standard : {standard_price} · VIP : {vip_price}"
+    )
 
 
 class PrototypePaymentForm(forms.Form):
@@ -253,6 +273,11 @@ class CheckInForm(FannFlowFormMixin, forms.Form):
     )
 
 
+def access_point_event_label(event):
+    start_date = timezone.localtime(event.start_date).strftime("%d/%m/%Y")
+    return f"{event.title} — {start_date}"
+
+
 class AccessPointForm(FannFlowModelForm):
     class Meta:
         model = AccessPoint
@@ -260,5 +285,19 @@ class AccessPointForm(FannFlowModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["event_id"].widget.attrs["min"] = 1
+        from events_program.models import Event
+
+        self.fields["event_id"] = forms.ModelChoiceField(
+            queryset=Event.objects.order_by("start_date", "title"),
+            label="Événement",
+            empty_label="Choisissez un événement",
+            error_messages={
+                "required": "Veuillez choisir un événement.",
+                "invalid_choice": "Choisissez un événement valide.",
+            },
+        )
+        self.fields["event_id"].label_from_instance = access_point_event_label
         self.fields["capacity"].widget.attrs["min"] = 1
+
+    def clean_event_id(self):
+        return self.cleaned_data["event_id"].pk

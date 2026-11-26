@@ -1,0 +1,54 @@
+{% extends "core/layouts/form.html" %}
+
+{% comment %}
+  Formulaire commun aux CRUD Communication, Média, Dossier de presse et
+  Publication. Les groupes de champs viennent de ``form.get_fieldsets``.
+  Le socle ajoute enctype="multipart/form-data" si le formulaire a un fichier.
+{% endcomment %}
+
+{% block extra_css %}{% include "communication_media/shared/_css.html" %}{% endblock %}
+
+{% block content %}
+  <div class="press-directory press-form-page cm-page">
+    {% include "communication_media/shared/_breadcrumb.html" with current=breadcrumb_current %}
+    {{ block.super }}
+  </div>
+{% endblock %}
+
+{% block form_fields %}
+  {% if form.errors %}
+    <div class="press-form-alert" role="alert">
+      <strong>Vérifiez les informations ci-dessous.</strong>
+      <ul>
+        {% for field in form.visible_fields %}
+          {% for error in field.errors %}
+            <li><a href="#{% if field.widget_type == "eventcheckboxselectmultiple" %}{{ field.auto_id }}_label{% else %}{{ field.id_for_label }}{% endif %}">{{ field.label }}</a> : {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% for legend, fields in form.get_fieldsets %}
+    <fieldset class="press-fieldset">
+      <legend>{{ legend }}</legend>
+      {% for field in fields %}
+        {% include "communication_media/shared/_field.html" %}
+      {% endfor %}
+    </fieldset>
+  {% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+  {% if form.fields.communications or form.fields.media %}
+    {% load static %}<script src="{% static 'communication_media/js/event_choices.js' %}" defer></script>
+  {% endif %}
+{% endblock %}
+
+{% block form_actions %}
+  <button type="submit" class="btn btn-primary">Enregistrer</button>
+  <a class="btn btn-secondary" href="{{ cancel_url }}">Annuler</a>
+{% endblock %}

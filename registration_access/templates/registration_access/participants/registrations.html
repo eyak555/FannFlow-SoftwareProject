@@ -35,10 +35,15 @@
             </td>
             <td>
               {% if registration.status == "pending" and registration.payment_status == "pending" %}
-                <form method="post" action="{% url 'registration_access:registration_cancel' registration.pk %}">
-                  {% csrf_token %}
-                  <button class="table-action table-action--delete" type="submit">Annuler</button>
-                </form>
+                <div class="table-actions">
+                  <a class="btn btn-primary" href="{% url 'registration_access:registration_confirm' registration.pk %}">{% if registration.requires_payment %}Payer{% else %}Confirmer{% endif %}</a>
+                  <form method="post" action="{% url 'registration_access:registration_cancel' registration.pk %}">
+                    {% csrf_token %}
+                    <button class="table-action table-action--delete" type="submit">Annuler l’inscription</button>
+                  </form>
+                </div>
+              {% elif registration.payment_status == "paid" %}
+                <span class="status-pill status-pill--success">Payée</span>
               {% else %}
                 <span>—</span>
               {% endif %}

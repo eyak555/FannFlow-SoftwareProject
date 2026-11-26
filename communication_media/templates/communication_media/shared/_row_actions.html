@@ -1,0 +1,5 @@
+{# Boutons d'une ligne. Variables : item, label, update_name (nom d'URL). #}
+<td class="press-row-actions">
+  <a class="btn btn-secondary" href="{{ item.get_absolute_url }}" aria-label="Consulter {{ label }}">Consulter</a>
+  <a class="btn btn-secondary" href="{% url update_name item.pk %}" aria-label="Modifier {{ label }}">Modifier</a>
+</td>

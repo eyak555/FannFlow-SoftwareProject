@@ -7,6 +7,8 @@ import base64
 from datetime import timedelta
 from decimal import Decimal
 
+from events_program.models import Event
+
 from .models import AccessPoint, Attendance, Registration, Ticket
 
 
@@ -26,6 +28,7 @@ class RegistrationAccessCrudTests(TestCase):
             password="admin-password",
         )
         self.client.force_login(self.admin)
+        self.event = self.make_event(pk=12, title="Festival FannFlow")
         self.registration = Registration.objects.create(
             user=self.user,
             event_id=12,
@@ -46,6 +49,29 @@ class RegistrationAccessCrudTests(TestCase):
         self.attendance = Attendance.objects.create(
             ticket=self.ticket,
             access_point=self.access_point,
+        )
+
+    def make_event(
+        self,
+        pk=None,
+        title="Festival de test",
+        ticket_price=Decimal("25.00"),
+        vip_ticket_price=Decimal("40.00"),
+    ):
+        now = timezone.now()
+        return Event.objects.create(
+            pk=pk,
+            title=title,
+            description="Un événement de test.",
+            event_type=Event.EventType.FESTIVAL,
+            start_date=now + timedelta(days=5),
+            end_date=now + timedelta(days=6),
+            registration_deadline=now + timedelta(days=4),
+            capacity=100,
+            ticket_price=ticket_price,
+            vip_ticket_price=vip_ticket_price,
+            location="Tunis",
+            status=Event.Status.PUBLISHED,
         )
 
     def test_registration_access_homepage_uses_admin_dashboard_template(self):
@@ -225,8 +251,15 @@ class RegistrationAccessCrudTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(list(response.context["access_points"]), [self.access_point])
+        self.assertContains(response, "Festival FannFlow")
         self.assertEqual(response.context["access_point_stats"]["total"], 1)
         self.assertEqual(response.context["access_point_stats"]["capacity"], 250)
+
+        form_response = self.client.get(
+            reverse("registration_access:entity_create", args=["access-points"])
+        )
+        self.assertContains(form_response, '<select name="event_id"')
+        self.assertContains(form_response, "Festival FannFlow")
 
     def test_entity_lists_paginate_and_keep_search_filters(self):
         for entity in ("registrations", "tickets", "attendances", "access-points"):
@@ -594,6 +627,7 @@ class RegistrationAccessCrudTests(TestCase):
                 self.assertEqual(response.status_code, 200)
 
     def test_participant_registration_uses_logged_in_user_and_pending_states(self):
+        event = self.make_event(vip_ticket_price=Decimal("10.00"))
         another_user = get_user_model().objects.create_user(
             email="other@example.test",
             first_name="Other",
@@ -604,7 +638,7 @@ class RegistrationAccessCrudTests(TestCase):
         response = self.client.post(
             reverse("registration_access:registration_request"),
             {
-                "event_id": 72,
+                "event_id": event.pk,
                 "ticket_type": Registration.TICKET_TYPE_VIP,
                 "user": another_user.pk,
                 "status": Registration.STATUS_CONFIRMED,
@@ -612,7 +646,7 @@ class RegistrationAccessCrudTests(TestCase):
             },
         )
         self.assertRedirects(response, reverse("registration_access:my_registrations"))
-        registration = Registration.objects.get(event_id=72)
+        registration = Registration.objects.get(event_id=event.pk)
         self.assertEqual(registration.user, self.user)
         self.assertEqual(registration.status, Registration.STATUS_PENDING)
         self.assertEqual(registration.payment_status, Registration.PAYMENT_PENDING)
@@ -626,6 +660,41 @@ class RegistrationAccessCrudTests(TestCase):
         self.assertContains(form_response, "Le paiement en ligne n’est pas encore intégré")
         self.assertContains(form_response, "Standard")
         self.assertContains(form_response, "VIP")
+
+    def test_participant_event_choice_displays_name_and_assigns_price(self):
+        event = self.make_event(
+            title="Festival des lumières",
+            ticket_price=Decimal("35.50"),
+            vip_ticket_price=Decimal("80.00"),
+        )
+        self.client.force_login(self.user)
+        registration_url = reverse("registration_access:registration_request")
+
+        form_response = self.client.get(registration_url)
+        self.assertContains(form_response, '<select name="event_id"')
+        self.assertContains(form_response, "Festival des lumières")
+        self.assertContains(form_response, "Standard : 35.50 DT")
+        self.assertContains(form_response, "VIP : 80.00 DT")
+
+        for ticket_type, expected_price in (
+            (Registration.TICKET_TYPE_STANDARD, Decimal("35.50")),
+            (Registration.TICKET_TYPE_VIP, Decimal("80.00")),
+        ):
+            with self.subTest(ticket_type=ticket_type):
+                response = self.client.post(
+                    registration_url,
+                    {"event_id": event.pk, "ticket_type": ticket_type},
+                )
+                self.assertRedirects(
+                    response,
+                    reverse("registration_access:my_registrations"),
+                )
+                registration = Registration.objects.filter(
+                    event_id=event.pk,
+                    ticket_type=ticket_type,
+                ).latest("pk")
+                ticket = Ticket.objects.get(registration=registration)
+                self.assertEqual(ticket.price, expected_price)
 
     def test_participant_lists_and_ticket_details_are_scoped_to_their_account(self):
         another_user = get_user_model().objects.create_user(
@@ -690,6 +759,12 @@ class RegistrationAccessCrudTests(TestCase):
         )
         self.client.force_login(self.user)
 
+        registration_list = self.client.get(
+            reverse("registration_access:my_registrations")
+        )
+        self.assertContains(registration_list, "Confirmer")
+        self.assertContains(registration_list, "Annuler l’inscription")
+
         response = self.client.get(reverse("registration_access:my_tickets"))
         self.assertContains(response, "Confirmer")
 
@@ -734,6 +809,16 @@ class RegistrationAccessCrudTests(TestCase):
         )
         self.client.force_login(self.user)
 
+        registration_list = self.client.get(
+            reverse("registration_access:my_registrations")
+        )
+        self.assertContains(registration_list, "Payer")
+        self.assertContains(registration_list, "Annuler l’inscription")
+        self.assertContains(
+            registration_list,
+            f'href="{reverse("registration_access:registration_confirm", args=[registration.pk])}"',
+        )
+
         response = self.client.get(reverse("registration_access:my_tickets"))
         self.assertContains(response, "Payer")
         self.assertNotContains(response, "Simulation, sans débit réel")
@@ -770,7 +855,15 @@ class RegistrationAccessCrudTests(TestCase):
         self.assertEqual(registration.payment_status, Registration.PAYMENT_PAID)
         self.assertEqual(ticket.status, Ticket.STATUS_AVAILABLE)
 
+        registration_list = self.client.get(
+            reverse("registration_access:my_registrations")
+        )
+        self.assertContains(registration_list, "Payée")
+        self.assertNotContains(registration_list, "Annuler l’inscription")
+        self.assertNotContains(registration_list, "Payer")
+
     def test_participant_can_cancel_only_their_pending_request(self):
+        event = self.make_event()
         self.client.force_login(self.user)
         home_response = self.client.get(reverse("registration_access:home"))
         self.assertContains(home_response, "Mes inscriptions")
@@ -779,12 +872,12 @@ class RegistrationAccessCrudTests(TestCase):
         response = self.client.post(
             reverse("registration_access:registration_request"),
             {
-                "event_id": 74,
+                "event_id": event.pk,
                 "ticket_type": Registration.TICKET_TYPE_STANDARD,
             },
         )
         self.assertEqual(response.status_code, 302)
-        registration = Registration.objects.get(event_id=74)
+        registration = Registration.objects.get(event_id=event.pk)
         response = self.client.post(
             reverse("registration_access:registration_cancel", args=[registration.pk])
         )
