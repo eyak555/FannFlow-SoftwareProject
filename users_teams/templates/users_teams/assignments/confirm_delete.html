@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="adm-head">
+    <div><h1>{{ page_title }}</h1></div>
+  </header>
+  <form class="ff-form" method="post">
+    {% csrf_token %}
+    <p>Retirer <strong>{{ assignment.user.get_full_name }}</strong> de l’événement <strong>« {{ assignment.event.title }} »</strong> ?</p>
+    <p class="hint">Le compte de l’organisateur n’est pas supprimé : seule cette affectation est retirée.</p>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-danger"><i data-lucide="user-minus" aria-hidden="true"></i> Retirer</button>
+      <a class="btn btn-ghost" href="{% url 'users_teams:assignment_list' %}?event={{ assignment.event_id }}">Annuler</a>
+    </div>
+  </form>
+{% endblock %}

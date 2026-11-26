@@ -1,0 +1,17 @@
+{% extends "core/layouts/form.html" %}
+
+{% block form_fields %}
+  <div class="pref-identity">
+    {% include "users_teams/components/avatar.html" with person=assignment.user %}
+    <div>
+      <strong>{{ assignment.user.get_full_name }}</strong>
+      <span class="tag tag--teal">{{ assignment.event.title }}</span>
+    </div>
+  </div>
+  {{ block.super }}
+{% endblock %}
+
+{% block form_actions %}
+  <button type="submit" class="btn btn-primary"><i data-lucide="save" aria-hidden="true"></i> Enregistrer</button>
+  <a class="btn btn-ghost" href="{% url 'users_teams:assignment_list' %}?event={{ assignment.event_id }}">Annuler</a>
+{% endblock %}

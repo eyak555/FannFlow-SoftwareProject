@@ -192,3 +192,57 @@ class AccountActivity(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} — {self.target_label}"
+
+
+class EventOrganizer(models.Model):
+    """Affectation d'un organisateur à un événement (entité « Event Organizer »)."""
+
+    class Permission(models.TextChoices):
+        VIEW = "consultation", "Consultation"
+        REGISTRATIONS = "inscriptions", "Gestion des inscriptions"
+        ACCESS = "acces", "Contrôle des accès"
+        FULL = "complet", "Gestion complète"
+
+    class Status(models.TextChoices):
+        ACTIVE = "actif", "Actif"
+        SUSPENDED = "suspendu", "Suspendu"
+
+    class TaskStatus(models.TextChoices):
+        TODO = "a_faire", "À faire"
+        IN_PROGRESS = "en_cours", "En cours"
+        DONE = "terminee", "Terminée"
+
+    # Id_event_organizer : clé primaire automatique.
+    user = models.ForeignKey(
+        User, verbose_name="organisateur", on_delete=models.CASCADE,
+        related_name="event_assignments",
+        limit_choices_to={"business_role": User.BusinessRole.ORGANIZER},
+    )
+    event = models.ForeignKey(
+        "events_program.Event", verbose_name="événement", on_delete=models.CASCADE,
+        related_name="organizer_assignments",
+    )
+    permissions = models.CharField(
+        "permissions", max_length=20, choices=Permission.choices, default=Permission.VIEW
+    )
+    assigned_by = models.ForeignKey(
+        User, verbose_name="affecté par", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="+",
+    )
+    assigned_at = models.DateTimeField("affecté le", default=timezone.now, editable=False)
+    status = models.CharField("statut", max_length=10, choices=Status.choices, default=Status.ACTIVE)
+    task = models.CharField("tâche", max_length=200, blank=True)
+    task_status = models.CharField(
+        "avancement de la tâche", max_length=10, choices=TaskStatus.choices, default=TaskStatus.TODO
+    )
+
+    class Meta:
+        verbose_name = "affectation d’organisateur"
+        verbose_name_plural = "affectations d’organisateurs"
+        ordering = ["-assigned_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "event"], name="unique_organizer_per_event"),
+        ]
+
+    def __str__(self):
+        return f"{self.user} — {self.event}"

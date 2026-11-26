@@ -23,6 +23,11 @@ urlpatterns = [
     path("users/<int:pk>/supprimer/", views.UserDeleteView.as_view(), name="user_delete"),
     # Organisateurs d'événements et préférences (équipe d'organisation)
     path("organisateurs/", views.OrganizersView.as_view(), name="organizers"),
+    # Affectation des organisateurs aux événements (Event Organizer)
+    path("affectations/", views.EventOrganizerListView.as_view(), name="assignment_list"),
+    path("affectations/nouvelle/", views.EventOrganizerAssignView.as_view(), name="assignment_create"),
+    path("affectations/<int:pk>/modifier/", views.EventOrganizerUpdateView.as_view(), name="assignment_update"),
+    path("affectations/<int:pk>/retirer/", views.EventOrganizerDeleteView.as_view(), name="assignment_delete"),
     path("profil/", views.ProfileView.as_view(), name="profile"),
     path("parametres/", views.SettingsView.as_view(), name="settings"),
     # Autres entités du module : encore en placeholder

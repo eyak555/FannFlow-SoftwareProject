@@ -221,25 +221,21 @@ def admin_notifications():
 
 
 def event_assignments():
-    """Affectations par membre d'équipe, si le Module 2 fournit ``Event``.
-
-    Renvoie ``None`` tant que le modèle n'existe pas (intégration préparée).
-    """
+    """Événements de chaque membre d'équipe : affectations actives (organisateurs)
+    et événements dont il est le responsable (directeurs)."""
     from core.services import optional_model
+
+    from .models import EventOrganizer
 
     Event = optional_model("events_program", "Event")
     if Event is None:
         return None
-    field = next(
-        (f for f in Event._meta.get_fields()
-         if getattr(f, "related_model", None) is User and f.name in ("director", "organizer", "director_id", "owner")),
-        None,
-    )
-    if field is None:
-        return {}
     assignments = {}
-    for event in Event.objects.exclude(**{f"{field.name}__isnull": True}).order_by("-pk")[:500]:
-        assignments.setdefault(getattr(event, f"{field.name}_id"), []).append(event)
+    active = EventOrganizer.objects.filter(status=EventOrganizer.Status.ACTIVE).select_related("event")
+    for assignment in active.order_by("event__start_date"):
+        assignments.setdefault(assignment.user_id, []).append(assignment.event)
+    for event in Event.objects.exclude(director__isnull=True).order_by("start_date"):
+        assignments.setdefault(event.director_id, []).append(event)
     return assignments
 
 

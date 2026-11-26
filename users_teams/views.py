@@ -9,14 +9,17 @@ from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.dateparse import parse_date
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, TemplateView, UpdateView
 
 from core.placeholders import render_crud_placeholder
 from core.services import dashboard_data
 from .entities import MODULE
 from . import services
-from .forms import LoginForm, PasswordSettingsForm, ProfileForm, RegisterForm, UserCreateForm, UserUpdateForm
-from .models import AccountActivity, User
+from .forms import (
+    EventOrganizerAssignForm, EventOrganizerUpdateForm, LoginForm, PasswordSettingsForm, ProfileForm,
+    RegisterForm, UserCreateForm, UserUpdateForm,
+)
+from .models import AccountActivity, EventOrganizer, User
 from .permissions import AdministratorRequiredMixin, ManagementAccessRequiredMixin
 
 USER_ENTITY = next(entity for entity in MODULE["entities"] if entity["slug"] == "users")
@@ -420,3 +423,160 @@ class OrganizersView(ManagementAccessRequiredMixin, ListView):
             },
         )
         return context
+
+
+# --- Affectation des organisateurs aux événements (Event Organizer) ---------
+#
+# Administrateur et directeur : CRUD complet.
+# Organisateur : consultation de ses propres affectations uniquement.
+
+
+def can_manage_assignments(user):
+    return user.is_authenticated and (
+        user.is_administrator or user.business_role == User.BusinessRole.DIRECTOR
+    )
+
+
+class AssignmentManagerRequiredMixin(ManagementAccessRequiredMixin):
+    def test_func(self):
+        return can_manage_assignments(self.request.user)
+
+
+class AssignmentContextMixin:
+    page_title = ""
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(module=MODULE, page_title=self.page_title)
+        return context
+
+
+def assignment_list_url(event_id=None):
+    url = reverse("users_teams:assignment_list")
+    return f"{url}?event={event_id}" if event_id else url
+
+
+class EventOrganizerListView(AssignmentContextMixin, ManagementAccessRequiredMixin, ListView):
+    template_name = "users_teams/assignments/list.html"
+    context_object_name = "assignments"
+    paginate_by = 10
+    page_title = "Affectations des organisateurs"
+
+    SORT_OPTIONS = {
+        "-assigned_at": "Plus récentes",
+        "assigned_at": "Plus anciennes",
+        "user__last_name": "Organisateur (A → Z)",
+        "-user__last_name": "Organisateur (Z → A)",
+        "event__start_date": "Date de l’événement",
+        "status": "Statut",
+    }
+
+    def get_sort(self):
+        sort = self.request.GET.get("sort", "-assigned_at")
+        return sort if sort in self.SORT_OPTIONS else "-assigned_at"
+
+    def get_queryset(self):
+        queryset = EventOrganizer.objects.select_related("user", "event", "assigned_by")
+        if not can_manage_assignments(self.request.user):
+            queryset = queryset.filter(user=self.request.user)  # un organisateur ne voit que les siennes
+        params = self.request.GET
+        query = params.get("q", "").strip()
+        if query:
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=query) | Q(user__last_name__icontains=query)
+                | Q(user__email__icontains=query) | Q(event__title__icontains=query)
+                | Q(task__icontains=query)
+            )
+        if params.get("event", "").isdecimal():
+            queryset = queryset.filter(event_id=int(params["event"]))
+        if params.get("status") in EventOrganizer.Status.values:
+            queryset = queryset.filter(status=params["status"])
+        if params.get("permissions") in EventOrganizer.Permission.values:
+            queryset = queryset.filter(permissions=params["permissions"])
+        return queryset.order_by(self.get_sort(), "pk")
+
+    def get_context_data(self, **kwargs):
+        from .forms import assignable_events
+
+        context = super().get_context_data(**kwargs)
+        params = self.request.GET
+        selected_event = None
+        if params.get("event", "").isdecimal():
+            selected_event = assignable_events().model.objects.filter(pk=int(params["event"])).first()
+        visible = EventOrganizer.objects.all()
+        if not can_manage_assignments(self.request.user):
+            visible = visible.filter(user=self.request.user)
+        context.update(
+            can_manage=can_manage_assignments(self.request.user),
+            events=assignable_events(),
+            selected_event=selected_event,
+            filters={key: params.get(key, "") for key in ("q", "event", "status", "permissions")},
+            sort=self.get_sort(),
+            sort_options=self.SORT_OPTIONS,
+            status_choices=EventOrganizer.Status.choices,
+            permission_choices=EventOrganizer.Permission.choices,
+            stats={
+                "total": visible.count(),
+                "active": visible.filter(status=EventOrganizer.Status.ACTIVE).count(),
+                "events": visible.values("event").distinct().count(),
+                "organizers": visible.values("user").distinct().count(),
+            },
+            page_intro=f"{context['paginator'].count} affectation(s) trouvée(s).",
+        )
+        return context
+
+
+class EventOrganizerAssignView(AssignmentContextMixin, AssignmentManagerRequiredMixin, FormView):
+    template_name = "users_teams/assignments/assign.html"
+    form_class = EventOrganizerAssignForm
+    page_title = "Affecter des organisateurs"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        if self.request.GET.get("event", "").isdecimal():
+            initial["event"] = int(self.request.GET["event"])
+        return initial
+
+    def form_valid(self, form):
+        event = form.cleaned_data["event"]
+        new = form.cleaned_data["new_organizers"]
+        EventOrganizer.objects.bulk_create([
+            EventOrganizer(
+                user=organizer, event=event, assigned_by=self.request.user,
+                permissions=form.cleaned_data["permissions"], task=form.cleaned_data["task"],
+            )
+            for organizer in new
+        ])
+        messages.success(self.request, f"{len(new)} organisateur(s) affecté(s) à « {event} ».")
+        if form.already_assigned:
+            names = ", ".join(str(u) for u in form.already_assigned)
+            messages.warning(self.request, f"Déjà affecté(s), ignoré(s) : {names}.")
+        return redirect(assignment_list_url(event.pk))
+
+
+class EventOrganizerUpdateView(AssignmentContextMixin, AssignmentManagerRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = EventOrganizer
+    form_class = EventOrganizerUpdateForm
+    template_name = "users_teams/assignments/update.html"
+    context_object_name = "assignment"
+    page_title = "Modifier l’affectation"
+    success_message = "L’affectation a été modifiée."
+
+    def get_success_url(self):
+        return assignment_list_url(self.object.event_id)
+
+
+class EventOrganizerDeleteView(AssignmentContextMixin, AssignmentManagerRequiredMixin, DeleteView):
+    model = EventOrganizer
+    template_name = "users_teams/assignments/confirm_delete.html"
+    context_object_name = "assignment"
+    page_title = "Retirer un organisateur"
+
+    def get_success_url(self):
+        return assignment_list_url(self.object.event_id)
+
+    def form_valid(self, form):
+        label = str(self.object.user)
+        response = super().form_valid(form)
+        messages.success(self.request, f"{label} a été retiré(e) de l’événement.")
+        return response

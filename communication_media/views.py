@@ -19,9 +19,9 @@ def crud_placeholder(request, entity, action, pk=None):
 
 # --- Annuaire presse (entité « Contact média ») -------------------------
 #
-# Le socle n'active encore aucune authentification (voir README) : ces
-# vues suivent la même règle que le reste de FannFlow sur ``main``. Pour
-# restreindre l'accès plus tard, ajouter un mixin d'accès à MediaContactMixin.
+# Accès : comme toutes les pages de gestion des modules, l'annuaire est
+# réservé à l'équipe (administrateur, directeur, organisateur) par
+# ``core.access.BackOfficeAccessMiddleware`` — aucun mixin à ajouter ici.
 
 MEDIA_CONTACT_ENTITY = next(
     entity for entity in MODULE["entities"] if entity["slug"] == "media-contacts"

@@ -1,0 +1,114 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'users_teams/css/users_teams.css' %}">{% endblock %}
+
+{% block content %}
+  <header class="adm-head">
+    <div>
+      <h1>{% if selected_event %}Organisateurs de « {{ selected_event.title }} »{% else %}{{ page_title }}{% endif %}</h1>
+      <p class="adm-head__lead">{% if can_manage %}Affectez un ou plusieurs organisateurs à un événement, gérez leurs permissions et leurs tâches.{% else %}Les événements auxquels vous êtes affecté(e).{% endif %}</p>
+    </div>
+    {% if can_manage %}
+      <div class="adm-head__actions">
+        <a class="btn btn-primary" href="{% url 'users_teams:assignment_create' %}{% if selected_event %}?event={{ selected_event.pk }}{% endif %}">
+          <i data-lucide="user-plus" aria-hidden="true"></i> Affecter des organisateurs
+        </a>
+      </div>
+    {% endif %}
+  </header>
+
+  <section class="kpi2-grid" aria-label="Résumé des affectations">
+    <div class="kpi2"><div class="kpi2__top">Affectations <span class="icon-badge icon-badge--sm icon-badge--blue"><i data-lucide="link" aria-hidden="true"></i></span></div><span class="kpi2__value">{{ stats.total }}</span></div>
+    <div class="kpi2"><div class="kpi2__top">Actives <span class="icon-badge icon-badge--sm icon-badge--green"><i data-lucide="circle-check" aria-hidden="true"></i></span></div><span class="kpi2__value">{{ stats.active }}</span></div>
+    <div class="kpi2"><div class="kpi2__top">Événements couverts <span class="icon-badge icon-badge--sm icon-badge--orange"><i data-lucide="calendar-days" aria-hidden="true"></i></span></div><span class="kpi2__value">{{ stats.events }}</span></div>
+    <div class="kpi2"><div class="kpi2__top">Organisateurs <span class="icon-badge icon-badge--sm icon-badge--teal"><i data-lucide="users" aria-hidden="true"></i></span></div><span class="kpi2__value">{{ stats.organizers }}</span></div>
+  </section>
+
+  <form class="search-panel" method="get" role="search" aria-label="Rechercher une affectation">
+    <div class="search-panel__main">
+      <label class="search-input" for="filter-q">
+        <i data-lucide="search" aria-hidden="true"></i>
+        <span class="visually-hidden">Recherche</span>
+        <input id="filter-q" type="search" name="q" value="{{ filters.q }}" placeholder="Organisateur, événement ou tâche…">
+      </label>
+      <div class="field">
+        <label for="filter-event">Événement</label>
+        <select class="ff-input" id="filter-event" name="event">
+          <option value="">Tous</option>
+          {% for event in events %}
+            <option value="{{ event.pk }}"{% if filters.event == event.pk|stringformat:"s" %} selected{% endif %}>{{ event.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-status">Statut</label>
+        <select class="ff-input" id="filter-status" name="status">
+          <option value="">Tous</option>
+          {% for value, label in status_choices %}<option value="{{ value }}"{% if filters.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="filter-sort">Trier par</label>
+        <select class="ff-input" id="filter-sort" name="sort">
+          {% for value, label in sort_options.items %}<option value="{{ value }}"{% if sort == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="search-panel__actions">
+      <div class="field" style="min-width:220px">
+        <label for="filter-permissions">Permissions</label>
+        <select class="ff-input" id="filter-permissions" name="permissions">
+          <option value="">Toutes</option>
+          {% for value, label in permission_choices %}<option value="{{ value }}"{% if filters.permissions == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-actions">
+        <a class="btn btn-ghost" href="{% url 'users_teams:assignment_list' %}"><i data-lucide="rotate-ccw" aria-hidden="true"></i> Réinitialiser</a>
+        <button type="submit" class="btn btn-primary"><i data-lucide="search" aria-hidden="true"></i> Rechercher</button>
+      </div>
+    </div>
+  </form>
+
+  {% if assignments %}
+    <div class="panel">
+      <p class="text-muted" style="margin:0 0 8px">{{ page_intro }}</p>
+      <div class="table-scroll">
+        <table class="adm-table">
+          <caption class="visually-hidden">{{ page_title }}</caption>
+          <thead><tr>
+            <th scope="col">Organisateur</th><th scope="col">Événement</th><th scope="col">Permissions</th>
+            <th scope="col">Tâche</th><th scope="col">Statut</th><th scope="col">Affecté le</th>
+            {% if can_manage %}<th scope="col"><span class="visually-hidden">Actions</span></th>{% endif %}
+          </tr></thead>
+          <tbody>
+            {% for a in assignments %}
+              <tr>
+                <td><div class="user-cell">{% include "users_teams/components/avatar.html" with person=a.user %}<strong>{{ a.user.get_full_name }}</strong></div></td>
+                <td><a href="?event={{ a.event_id }}">{{ a.event.title }}</a><br><small class="text-muted">{{ a.event.start_date|date:"d/m/Y H:i" }}</small></td>
+                <td><span class="tag tag--teal">{{ a.get_permissions_display }}</span></td>
+                <td>{% if a.task %}{{ a.task }}<br><small class="text-muted">{{ a.get_task_status_display }}</small>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                <td><span class="status-pill {% if a.status == 'actif' %}status-pill--success{% else %}status-pill--pending{% endif %}"><span></span>{{ a.get_status_display }}</span></td>
+                <td><time datetime="{{ a.assigned_at|date:'c' }}">{{ a.assigned_at|date:"d/m/Y" }}</time>{% if a.assigned_by %}<br><small class="text-muted">par {{ a.assigned_by }}</small>{% endif %}</td>
+                {% if can_manage %}
+                  <td class="table-actions">
+                    <a class="table-action" href="{% url 'users_teams:assignment_update' a.pk %}">Modifier</a>
+                    <a class="table-action table-action--delete" href="{% url 'users_teams:assignment_delete' a.pk %}">Retirer</a>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% include "core/components/pagination.html" %}
+  {% else %}
+    <div class="state">
+      <span class="icon-badge"><i data-lucide="calendar-check" aria-hidden="true"></i></span>
+      <h3>Aucune affectation</h3>
+      <p>{% if filters.q or filters.event or filters.status or filters.permissions %}Aucune affectation ne correspond à ces critères.{% elif can_manage %}Commencez par affecter des organisateurs à un événement.{% else %}Vous n’êtes affecté(e) à aucun événement pour le moment.{% endif %}</p>
+      {% if can_manage %}<a class="btn btn-primary" href="{% url 'users_teams:assignment_create' %}" style="margin-top:8px"><i data-lucide="user-plus" aria-hidden="true"></i> Affecter des organisateurs</a>{% endif %}
+    </div>
+  {% endif %}
+{% endblock %}

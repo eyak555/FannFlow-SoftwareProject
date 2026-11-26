@@ -16,6 +16,8 @@
     {% endif %}
   </header>
 
+  <p style="margin:-8px 0 18px"><a class="btn btn-ghost btn-sm" href="{% url 'users_teams:assignment_list' %}"><i data-lucide="link" aria-hidden="true"></i> Gérer les affectations aux événements</a></p>
+
   {% if not events_available %}
     <div class="notice" role="note">
       <i data-lucide="info" aria-hidden="true"></i>

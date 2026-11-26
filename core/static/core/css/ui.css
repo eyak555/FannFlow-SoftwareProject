@@ -861,3 +861,12 @@ input[type="file"].ff-input:hover::file-selector-button { background: var(--teal
 .file-preview.is-error small { color: #b23d3d; }
 /* Photo actuelle (« Actuellement / Effacer » de Django) */
 .field a[href*="profile_pictures"] { color: var(--teal-600); font-size: .84rem; }
+
+/* Affectation des organisateurs : cases à cocher en cartes */
+.check-fieldset { margin: 0 0 18px; padding: 0; border: 0; }
+.check-fieldset legend { margin-bottom: 8px; color: var(--blue); font: 500 .875rem var(--font-body); }
+.check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.check-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); font-size: .9rem; cursor: pointer; transition: border-color .15s, background .15s; }
+.check-card:hover { border-color: var(--teal-600); }
+.check-card:has(input:checked) { border-color: var(--teal-600); background: var(--teal-50); }
+.check-card input { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--navy-700); }

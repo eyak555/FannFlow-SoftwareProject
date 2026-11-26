@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
@@ -18,7 +19,35 @@ def make_contact(**overrides):
     return MediaContact.objects.create(**data)
 
 
-class MediaContactRoutesTests(TestCase):
+class TeamMemberTestCase(TestCase):
+    """L'annuaire presse est réservé à l'équipe (back-office) : on se connecte en organisateur."""
+
+    def setUp(self):
+        organizer = get_user_model().objects.create_user(
+            email="organisateur@test.tn",
+            password="test-password",
+            first_name="Orga",
+            last_name="Test",
+            business_role="organisateur",
+        )
+        self.client.force_login(organizer)
+
+
+class MediaContactAccessTests(TestCase):
+    def test_visitor_is_redirected_to_login(self):
+        url = reverse("communication_media:media_contact_list")
+        response = self.client.get(url)
+        self.assertRedirects(response, f"{reverse('users_teams:login')}?next={url}", fetch_redirect_response=False)
+
+    def test_participant_is_forbidden(self):
+        participant = get_user_model().objects.create_user(
+            email="participant@test.tn", password="test-password", first_name="P", last_name="T",
+        )
+        self.client.force_login(participant)
+        self.assertEqual(self.client.get(reverse("communication_media:media_contact_list")).status_code, 403)
+
+
+class MediaContactRoutesTests(TeamMemberTestCase):
     def test_generic_entity_route_leads_to_directory(self):
         url = reverse("communication_media:entity_list", args=["media-contacts"])
         self.assertEqual(url, reverse("communication_media:media_contact_list"))
@@ -35,7 +64,7 @@ class MediaContactRoutesTests(TestCase):
         self.assertTrue(response.context["placeholder"])
 
 
-class MediaContactListTests(TestCase):
+class MediaContactListTests(TeamMemberTestCase):
     def test_empty_directory_offers_add_button(self):
         response = self.client.get(reverse("communication_media:media_contact_list"))
         self.assertEqual(response.status_code, 200)
@@ -52,7 +81,7 @@ class MediaContactListTests(TestCase):
         self.assertContains(response, contact.get_absolute_url())
 
 
-class MediaContactCreateTests(TestCase):
+class MediaContactCreateTests(TeamMemberTestCase):
     url = reverse("communication_media:media_contact_create")
 
     def test_form_page_groups_fields(self):
@@ -110,7 +139,7 @@ class MediaContactCreateTests(TestCase):
         self.assertEqual(MediaContact.objects.count(), 1)
 
 
-class MediaContactDetailTests(TestCase):
+class MediaContactDetailTests(TeamMemberTestCase):
     def test_detail_shows_mail_and_phone_links(self):
         contact = make_contact()
         response = self.client.get(contact.get_absolute_url())
@@ -133,8 +162,9 @@ class MediaContactDetailTests(TestCase):
                 self.assertEqual(response.status_code, 404)
 
 
-class MediaContactUpdateTests(TestCase):
+class MediaContactUpdateTests(TeamMemberTestCase):
     def setUp(self):
+        super().setUp()
         self.contact = make_contact()
         self.url = reverse("communication_media:media_contact_update", args=[self.contact.pk])
 
@@ -157,8 +187,9 @@ class MediaContactUpdateTests(TestCase):
         self.assertEqual(self.contact.name, "Amira Ben Salah")
 
 
-class MediaContactDeleteTests(TestCase):
+class MediaContactDeleteTests(TeamMemberTestCase):
     def setUp(self):
+        super().setUp()
         self.contact = make_contact()
         self.url = reverse("communication_media:media_contact_delete", args=[self.contact.pk])
 

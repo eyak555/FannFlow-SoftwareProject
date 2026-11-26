@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="adm-head">
+    <div>
+      <h1>{{ page_title }}</h1>
+      <p class="adm-head__lead">Choisissez un événement, cochez un ou plusieurs organisateurs, puis définissez leurs permissions.</p>
+    </div>
+  </header>
+
+  <form class="ff-form" method="post" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="field{% if form.event.errors %} field--error{% endif %}">
+      <label for="{{ form.event.id_for_label }}">{{ form.event.label }}</label>
+      {{ form.event }}
+      {{ form.event.errors }}
+    </div>
+
+    <fieldset class="field check-fieldset{% if form.organizers.errors %} field--error{% endif %}">
+      <legend>{{ form.organizers.label }}</legend>
+      {% if form.organizers.field.queryset.exists %}
+        <div class="check-grid">
+          {% for option in form.organizers %}
+            <label class="check-card" for="{{ option.id_for_label }}">
+              {{ option.tag }}
+              <span>{{ option.choice_label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="hint">Aucun organisateur actif. Attribuez d’abord le rôle métier « Organisateur » à un compte.</p>
+      {% endif %}
+      {{ form.organizers.errors }}
+    </fieldset>
+
+    <div class="field{% if form.permissions.errors %} field--error{% endif %}">
+      <label for="{{ form.permissions.id_for_label }}">{{ form.permissions.label }}</label>
+      {{ form.permissions }}
+      {{ form.permissions.errors }}
+    </div>
+
+    <div class="field{% if form.task.errors %} field--error{% endif %}">
+      <label for="{{ form.task.id_for_label }}">{{ form.task.label }}</label>
+      {{ form.task }}
+      {{ form.task.errors }}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary"><i data-lucide="user-plus" aria-hidden="true"></i> Affecter</button>
+      <a class="btn btn-ghost" href="{% url 'users_teams:assignment_list' %}">Annuler</a>
+    </div>
+  </form>
+{% endblock %}

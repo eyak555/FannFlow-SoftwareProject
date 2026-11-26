@@ -76,10 +76,10 @@
         <article class="adm-card">
           <span class="icon-badge icon-badge--orange"><i data-lucide="calendar-check" aria-hidden="true"></i></span>
           <h3>Organisateurs d’événements</h3>
-          <p>Retrouvez les directeurs et organisateurs et leurs affectations. L’affectation aux événements s’activera avec le module Events &amp; Program.</p>
+          <p>Affectez un ou plusieurs organisateurs à un événement, définissez leurs permissions et suivez leurs tâches.</p>
           <div class="adm-card__actions">
-            <a class="btn btn-primary btn-sm" href="{% url 'users_teams:organizers' %}"><i data-lucide="briefcase" aria-hidden="true"></i> Voir l’équipe</a>
-            <a class="btn btn-ghost btn-sm" href="{% url 'users_teams:user_create' %}?role=participant&amp;business_role=organisateur"><i data-lucide="plus" aria-hidden="true"></i> Ajouter</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'users_teams:assignment_create' %}"><i data-lucide="user-plus" aria-hidden="true"></i> Affecter</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'users_teams:assignment_list' %}"><i data-lucide="link" aria-hidden="true"></i> Voir les affectations</a>
           </div>
         </article>
       </div>

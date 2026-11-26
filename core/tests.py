@@ -278,7 +278,7 @@ class AccountSelfServiceTests(TestCase):
 
     def test_external_next_is_ignored(self):
         response = self.client.post(reverse("core:profile"), {
-            "first_name": "K", "last_name": "T", "next": "https://evil.example/",
+            "first_name": "Khadija", "last_name": "Test", "next": "https://evil.example/",
         })
         self.assertRedirects(response, reverse("core:my_space"))
 

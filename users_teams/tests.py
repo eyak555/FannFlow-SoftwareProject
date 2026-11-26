@@ -301,7 +301,7 @@ class RegistrationTests(TestCase):
 
 # --- Tableau de bord d'administration, journal, préférences -----------------
 
-from .models import AccountActivity  # noqa: E402
+from .models import AccountActivity, EventOrganizer  # noqa: E402
 
 
 class AdminDashboardTests(TestCase):
@@ -495,3 +495,155 @@ class PreferencesTests(TestCase):
         for name in ("users_teams:profile", "users_teams:settings", "users_teams:organizers"):
             with self.subTest(name=name):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 403)
+
+
+class InputControlTests(TestCase):
+    """Contrôles de saisie : nom/prénom (3 caractères min., lettres) et email avec « @ »."""
+
+    def register(self, **overrides):
+        data = user_payload(**overrides)
+        return self.client.post(reverse("users_teams:register"), data)
+
+    def test_short_names_are_refused(self):
+        response = self.register(first_name="Al", last_name="B")
+        self.assertContains(response, "Le prénom doit contenir au moins 3 caractères.")
+        self.assertContains(response, "Le nom doit contenir au moins 3 caractères.")
+        self.assertFalse(User.objects.filter(email="nour@example.tn").exists())
+
+    def test_spaces_do_not_count(self):
+        response = self.register(first_name="  A  ")
+        self.assertContains(response, "Le prénom doit contenir au moins 3 caractères.")
+
+    def test_digits_and_symbols_are_refused(self):
+        response = self.register(first_name="Nour123", last_name="B@d")
+        self.assertContains(response, "Le prénom ne peut contenir que des lettres")
+        self.assertContains(response, "Le nom ne peut contenir que des lettres")
+
+    def test_valid_compound_names_are_accepted_and_cleaned(self):
+        self.register(first_name="  Aïcha   ", last_name="Ben  Salah-O’Neil")
+        user = User.objects.get(email="nour@example.tn")
+        self.assertEqual((user.first_name, user.last_name), ("Aïcha", "Ben Salah-O’Neil"))
+
+    def test_email_without_at_is_refused(self):
+        response = self.register(email="nour.example.tn")
+        self.assertContains(response, "elle doit contenir « @ »")
+        self.assertEqual(User.objects.count(), 0)
+
+    def test_login_email_without_at_shows_clear_message(self):
+        response = self.client.post(reverse("users_teams:login"), {"username": "nouremail", "password": "x"})
+        self.assertContains(response, "elle doit contenir « @ »")
+
+    def test_admin_create_and_profile_use_same_checks(self):
+        admin = make_user("admin@test.tn", role=User.Role.ADMIN, first_name="Ada", last_name="Min")
+        self.client.force_login(admin)
+        response = self.client.post(reverse("users_teams:user_create"), user_payload(first_name="Jo"))
+        self.assertContains(response, "Le prénom doit contenir au moins 3 caractères.")
+        response = self.client.post(reverse("users_teams:profile"), {"first_name": "Ada", "last_name": "X"})
+        self.assertContains(response, "Le nom doit contenir au moins 3 caractères.")
+
+    def test_name_fields_have_minlength_attribute(self):
+        response = self.client.get(reverse("users_teams:register"))
+        self.assertContains(response, 'minlength="3"')
+
+
+class EventOrganizerAssignmentTests(TestCase):
+    """Affectation d'un ou plusieurs organisateurs à un événement (CRUD + filtres)."""
+
+    def setUp(self):
+        from datetime import timedelta
+        from decimal import Decimal
+
+        from django.utils import timezone
+        from events_program.models import Event
+
+        now = timezone.now()
+        self.admin = make_user("admin@test.tn", role=User.Role.ADMIN, first_name="Ada", last_name="Min")
+        self.director = make_user("dir@test.tn", business_role=User.BusinessRole.DIRECTOR, first_name="Karim", last_name="Directeur")
+        self.orga1 = make_user("o1@test.tn", business_role=User.BusinessRole.ORGANIZER, first_name="Sana", last_name="Alpha")
+        self.orga2 = make_user("o2@test.tn", business_role=User.BusinessRole.ORGANIZER, first_name="Omar", last_name="Beta")
+
+        def event(title):
+            return Event.objects.create(
+                title=title, description="Desc", event_type=Event.EventType.FESTIVAL,
+                category=Event.Category.MUSIC, start_date=now + timedelta(days=5),
+                end_date=now + timedelta(days=6), registration_deadline=now + timedelta(days=4),
+                capacity=100, ticket_price=Decimal("10.00"), location="Tunis",
+                status=Event.Status.PUBLISHED,
+            )
+
+        self.event = event("Festival Jazz")
+        self.other_event = event("Expo Photo")
+
+    def assign(self, organizers, event=None, **extra):
+        data = {"event": (event or self.event).pk, "organizers": [o.pk for o in organizers],
+                "permissions": EventOrganizer.Permission.REGISTRATIONS, "task": "Accueil"}
+        data.update(extra)
+        return self.client.post(reverse("users_teams:assignment_create"), data)
+
+    def test_admin_assigns_several_organizers_at_once(self):
+        self.client.force_login(self.admin)
+        response = self.assign([self.orga1, self.orga2])
+        self.assertRedirects(response, f"{reverse('users_teams:assignment_list')}?event={self.event.pk}")
+        rows = EventOrganizer.objects.filter(event=self.event)
+        self.assertEqual(rows.count(), 2)
+        self.assertTrue(all(r.assigned_by == self.admin and r.task == "Accueil" for r in rows))
+
+    def test_duplicates_are_skipped_or_refused(self):
+        self.client.force_login(self.director)
+        self.assign([self.orga1])
+        self.assign([self.orga1, self.orga2])
+        self.assertEqual(EventOrganizer.objects.filter(event=self.event).count(), 2)
+        response = self.assign([self.orga1])
+        self.assertContains(response, "déjà affectés")
+
+    def test_only_active_organizers_can_be_selected(self):
+        self.client.force_login(self.admin)
+        response = self.assign([self.director])
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(EventOrganizer.objects.exists())
+
+    def test_list_filter_by_event_search_and_pagination(self):
+        self.client.force_login(self.admin)
+        self.assign([self.orga1])
+        self.assign([self.orga2], event=self.other_event)
+        url = reverse("users_teams:assignment_list")
+        response = self.client.get(url, {"event": self.event.pk})
+        self.assertEqual([a.user for a in response.context["assignments"]], [self.orga1])
+        self.assertContains(response, "Organisateurs de « Festival Jazz »")
+        response = self.client.get(url, {"q": "omar"})
+        self.assertEqual([a.user for a in response.context["assignments"]], [self.orga2])
+        self.assertEqual(self.client.get(url, {"sort": "user__last_name", "page": 1}).status_code, 200)
+
+    def test_update_permissions_and_remove(self):
+        self.client.force_login(self.admin)
+        self.assign([self.orga1])
+        assignment = EventOrganizer.objects.get()
+        response = self.client.post(reverse("users_teams:assignment_update", args=[assignment.pk]), {
+            "permissions": EventOrganizer.Permission.FULL, "status": EventOrganizer.Status.SUSPENDED,
+            "task": "Billetterie", "task_status": EventOrganizer.TaskStatus.IN_PROGRESS,
+        })
+        self.assertEqual(response.status_code, 302)
+        assignment.refresh_from_db()
+        self.assertEqual((assignment.permissions, assignment.status), ("complet", "suspendu"))
+        self.client.post(reverse("users_teams:assignment_delete", args=[assignment.pk]))
+        self.assertFalse(EventOrganizer.objects.exists())
+        self.assertTrue(User.objects.filter(pk=self.orga1.pk).exists())  # le compte reste
+
+    def test_organizer_sees_only_own_assignments_and_cannot_manage(self):
+        self.client.force_login(self.admin)
+        self.assign([self.orga1, self.orga2])
+        self.client.force_login(self.orga1)
+        response = self.client.get(reverse("users_teams:assignment_list"))
+        self.assertEqual([a.user for a in response.context["assignments"]], [self.orga1])
+        self.assertNotContains(response, "Retirer")
+        pk = EventOrganizer.objects.first().pk
+        for url in (reverse("users_teams:assignment_create"),
+                    reverse("users_teams:assignment_update", args=[pk]),
+                    reverse("users_teams:assignment_delete", args=[pk])):
+            self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_participant_and_visitor_are_blocked(self):
+        url = reverse("users_teams:assignment_list")
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.client.force_login(make_user("p@test.tn"))
+        self.assertEqual(self.client.get(url).status_code, 403)
