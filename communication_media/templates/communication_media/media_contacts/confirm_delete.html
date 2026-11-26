@@ -1,0 +1,30 @@
+{% extends "core/layouts/confirm_delete.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'communication_media/css/press_directory.css' %}">{% endblock %}
+
+{% comment %}
+  Le gabarit du socle place un bouton « Annuler » vers la liste en dehors
+  de tout bloc. On reprend donc le contenu ici pour annuler vers la fiche.
+{% endcomment %}
+{% block content %}
+  <div class="press-directory press-delete-page">
+    {% include "communication_media/media_contacts/_breadcrumb.html" with current="Suppression" %}
+
+    <header class="page-header">
+      <div><h1>{{ page_title }}</h1></div>
+    </header>
+
+    <form class="ff-form press-delete-card" method="post">
+      {% csrf_token %}
+      <p class="press-delete-question">
+        Voulez-vous vraiment supprimer <strong>{{ contact.name }}</strong>{% if contact.organization %} ({{ contact.organization }}){% endif %} de l’annuaire presse ?
+      </p>
+      <p class="hint">Cette action est définitive.</p>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
+        <a class="btn btn-secondary" href="{{ contact.get_absolute_url }}">Annuler</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

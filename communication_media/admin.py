@@ -1,3 +1,10 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import MediaContact
+
+
+@admin.register(MediaContact)
+class MediaContactAdmin(admin.ModelAdmin):
+    list_display = ("name", "organization", "role", "email", "phone")
+    list_filter = ("role",)
+    search_fields = ("name", "organization", "email")

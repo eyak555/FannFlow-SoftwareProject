@@ -1,0 +1,11 @@
+<nav class="press-breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a href="{% url 'communication_media:home' %}">{{ module.title }}</a></li>
+    {% if current %}
+      <li><a href="{% url 'communication_media:media_contact_list' %}">{{ directory_title }}</a></li>
+      <li aria-current="page">{{ current }}</li>
+    {% else %}
+      <li aria-current="page">{{ directory_title }}</li>
+    {% endif %}
+  </ol>
+</nav>
