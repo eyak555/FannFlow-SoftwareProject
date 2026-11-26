@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header">
+    <div><h1>{{ page_title }}</h1><p class="lede">{{ object }}</p></div>
+    <div class="page-header__actions">
+      <a class="btn btn-secondary" href="{% url 'events_program:entity_update' entity_slug object.pk %}">Modifier</a>
+      <a class="btn btn-danger" href="{% url 'events_program:entity_delete' entity_slug object.pk %}">Supprimer</a>
+    </div>
+  </header>
+  <dl class="detail">
+    {% if entity_slug == "events" %}
+      <dt>Description</dt><dd>{{ object.description|linebreaksbr }}</dd>
+      <dt>Type</dt><dd>{{ object.get_event_type_display }}</dd>
+      <dt>Catégorie</dt><dd>{{ object.category_display }}</dd>
+      <dt>Lieu</dt><dd>{{ object.location }}</dd>
+      <dt>Début</dt><dd>{{ object.start_date|date:"j F Y, H:i" }}</dd>
+      <dt>Fin</dt><dd>{{ object.end_date|date:"j F Y, H:i" }}</dd>
+      <dt>Date limite d’inscription</dt><dd>{{ object.registration_deadline|date:"j F Y, H:i" }}</dd>
+      <dt>Capacité</dt><dd>{{ object.capacity }}</dd>
+      <dt>Prix Standard</dt><dd>{{ object.ticket_price }} DT</dd>
+      <dt>Prix VIP</dt><dd>{{ object.vip_ticket_price }} DT</dd>
+      <dt>Conditions d’âge</dt><dd>{{ object.age_requirement_display }}</dd>
+      <dt>Responsable</dt><dd>{{ object.director|default:"Non attribué" }}</dd>
+      <dt>État</dt><dd>{{ object.lifecycle_status_label }} ({{ object.get_status_display }})</dd>
+      <dt>Inscriptions</dt><dd>{{ registration_count }}</dd>
+      <dt>Activités</dt>
+      <dd>
+        {% for activity in object.activities.all %}
+          <p><a href="{% url 'events_program:entity_detail' 'activities' activity.pk %}">{{ activity.title }}</a> · {{ activity.start_time|date:"j M Y H:i" }}</p>
+        {% empty %}Aucune activité programmée.{% endfor %}
+        <a class="btn btn-secondary" href="{% url 'events_program:entity_create' 'activities' %}?event={{ object.pk }}">Ajouter une activité</a>
+      </dd>
+    {% elif entity_slug == "activities" %}
+      <dt>Événement</dt><dd><a href="{% url 'events_program:entity_detail' 'events' object.event_id %}">{{ object.event.title }}</a></dd>
+      <dt>Type</dt><dd>{{ object.activity_type }}</dd>
+      <dt>Description</dt><dd>{{ object.description|linebreaksbr|default:"—" }}</dd>
+      <dt>Début</dt><dd>{{ object.start_time|date:"j F Y, H:i" }}</dd>
+      <dt>Fin</dt><dd>{{ object.end_time|date:"j F Y, H:i" }}</dd>
+      <dt>Salle</dt><dd>{{ object.room|default:"—" }}</dd>
+      <dt>Capacité</dt><dd>{{ object.capacity|default:"—" }}</dd>
+      <dt>Intervenants</dt><dd>{% for speaker in object.speakers.all %}<p><a href="{% url 'events_program:entity_detail' 'speakers' speaker.pk %}">{{ speaker.name }}</a></p>{% empty %}Aucun intervenant associé.{% endfor %}</dd>
+    {% elif entity_slug == "speakers" %}
+      <dt>Biographie</dt><dd>{{ object.bio|linebreaksbr|default:"—" }}</dd>
+      <dt>Organisation</dt><dd>{{ object.organization|default:"—" }}</dd>
+      <dt>Pays</dt><dd>{{ object.country|default:"—" }}</dd>
+      <dt>Expertise</dt><dd>{{ object.expertise|default:"—" }}</dd>
+      <dt>Email</dt><dd>{{ object.email|default:"—" }}</dd>
+      <dt>Activités associées</dt><dd>{% for activity in object.activities.all %}<p><a href="{% url 'events_program:entity_detail' 'activities' activity.pk %}">{{ activity.title }}</a></p>{% empty %}Aucune activité associée.{% endfor %}</dd>
+    {% else %}
+      <dt>Activité</dt><dd>{{ object.activity.title }}</dd>
+      <dt>Intervenant</dt><dd>{{ object.speaker.name }}</dd>
+    {% endif %}
+  </dl>
+{% endblock %}

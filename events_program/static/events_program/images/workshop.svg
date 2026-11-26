@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title">
+  <title id="title">Illustration d’un atelier pratique</title>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#193e51"/><stop offset="1" stop-color="#589b82"/></linearGradient></defs>
+  <rect width="1200" height="675" fill="url(#bg)"/><rect x="170" y="398" width="860" height="45" rx="12" fill="#dfb778"/><path d="M225 443v135m750-135v135" stroke="#b37c48" stroke-width="24" stroke-linecap="round"/>
+  <path d="M445 300h310v96H445z" fill="#f5f0e5"/><path d="M475 324h250" stroke="#64a78e" stroke-width="10" stroke-linecap="round"/><path d="M475 356h185" stroke="#d88453" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="335" cy="270" r="58" fill="#e5b18a"/><path d="M277 264q12-75 81-65 41 9 44 59l-31-18-76 16z" fill="#342b3b"/><path d="M268 340q67-58 134 0l30 58H238z" fill="#e6a23c"/><path d="m370 344 105-87" stroke="#f5f0e5" stroke-width="15" stroke-linecap="round"/><circle cx="475" cy="257" r="13" fill="#d88453"/>
+  <circle cx="870" cy="272" r="58" fill="#bf8769"/><path d="M811 262q8-75 82-62 37 10 39 61l-30-20-78 14z" fill="#26324a"/><path d="M802 340q68-58 136 0l31 58H770z" fill="#64a78e"/><path d="m830 346-92-86" stroke="#f5f0e5" stroke-width="15" stroke-linecap="round"/><circle cx="738" cy="260" r="13" fill="#d88453"/>
+  <text x="600" y="625" fill="#fff" font-family="Arial,sans-serif" font-size="28" font-weight="700" letter-spacing="8" text-anchor="middle">ATELIER PARTICIPATIF</text>
+</svg>

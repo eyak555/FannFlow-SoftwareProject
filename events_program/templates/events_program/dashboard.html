@@ -1,0 +1,65 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">{{ module.code }} · Espace de gestion</p>
+      <h1>{{ page_title }}</h1>
+      <p class="lede">{{ page_intro }}</p>
+    </div>
+    <div class="page-header__actions">
+      <a class="btn btn-primary" href="{% url 'events_program:entity_create' 'events' %}">Ajouter un événement</a>
+    </div>
+  </header>
+
+  <section class="module-stat-grid" aria-label="Statistiques des événements">
+    <article class="module-stat"><span>Total événements</span><strong>{{ dashboard.counts.total }}</strong><small>tous statuts</small></article>
+    <article class="module-stat"><span>À venir</span><strong>{{ dashboard.counts.upcoming }}</strong><small>événements publiés</small></article>
+    <article class="module-stat module-stat--accent"><span>En cours</span><strong>{{ dashboard.counts.ongoing }}</strong><small>selon les dates</small></article>
+    <article class="module-stat"><span>Terminés</span><strong>{{ dashboard.counts.completed }}</strong><small>événements publiés</small></article>
+    <article class="module-stat"><span>Activités</span><strong>{{ dashboard.counts.activities }}</strong><small>au programme</small></article>
+    <article class="module-stat"><span>Inscriptions</span><strong>{{ dashboard.counts.registrations }}</strong><small>dans le module Inscriptions et Accès</small></article>
+  </section>
+
+  <section class="module-content-grid">
+    <div class="module-panel">
+      <div class="panel-heading">
+        <div><p class="panel-kicker">Programme</p><h2>Fonctionnalités</h2></div>
+      </div>
+      <div class="module-entity-grid">
+        {% for entity in module.entities %}
+          <article class="module-entity-card">
+            <span class="entity-index" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+            <div class="entity-card-content"><h3>{{ entity.name }}</h3><p>Créer, consulter et gérer les données.</p></div>
+            <div class="entity-actions">
+              <a class="btn btn-secondary" href="{% url 'events_program:entity_list' entity.slug %}">Ouvrir</a>
+              <a class="btn btn-primary" href="{% url 'events_program:entity_create' entity.slug %}">Ajouter</a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+
+    <aside class="module-panel">
+      <div class="panel-heading"><div><p class="panel-kicker">Prochainement</p><h2>Événements publiés</h2></div></div>
+      {% if dashboard.upcoming %}
+        <ul class="event-upcoming-list">
+          {% for event in dashboard.upcoming %}
+            <li>
+              <a href="{% url 'events_program:entity_detail' 'events' event.pk %}"><strong>{{ event.title }}</strong></a>
+              <span>{{ event.start_date|date:"j F Y, H:i" }} · {{ event.location }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>Aucun événement publié à venir.</p>
+      {% endif %}
+      {% if dashboard.categories %}
+        <h3>Événements par catégorie</h3>
+        <ul>
+          {% for row in dashboard.categories %}<li>{{ row.category }} : {{ row.total }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    </aside>
+  </section>
+{% endblock %}

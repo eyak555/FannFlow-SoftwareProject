@@ -1,7 +1,11 @@
+from datetime import timedelta
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
+from events_program.models import Event
 from .models import User
 
 PASSWORD = "Str0ng-Pass!2026"
@@ -468,11 +472,23 @@ class PreferencesTests(TestCase):
         self.assertEqual(self.client.get(reverse("users_teams:home")).status_code, 200)
 
     def test_organizer_sees_team_page_without_admin_actions(self):
+        start = timezone.now() + timedelta(days=2)
+        event = Event.objects.create(
+            title="Événement de Sana",
+            description="Programme de test.",
+            event_type=Event.EventType.CONCERT,
+            start_date=start,
+            end_date=start + timedelta(hours=4),
+            registration_deadline=start - timedelta(days=1),
+            capacity=100,
+            location="Tunis",
+            director=self.organizer,
+        )
         response = self.client.get(reverse("users_teams:organizers"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Sana")
         self.assertNotContains(response, "Modifier le rôle")
-        self.assertContains(response, "Intégration préparée")
+        self.assertContains(response, event.title)
 
     def test_participant_cannot_reach_preferences(self):
         self.client.force_login(make_user("p@test.tn"))

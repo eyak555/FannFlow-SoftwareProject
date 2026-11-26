@@ -1,0 +1,18 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header"><div><h1>{{ page_title }}</h1></div></header>
+  <form class="ff-form" method="post">
+    {% csrf_token %}
+    {% if delete_blocker %}
+      <p role="alert">{{ delete_blocker }}</p>
+      <div class="form-actions"><a class="btn btn-secondary" href="{% url 'events_program:entity_detail' entity_slug object.pk %}">Retour aux détails</a></div>
+    {% else %}
+      <p>Confirmer la suppression de <strong>{{ object }}</strong> ? Cette action est définitive.</p>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">Confirmer la suppression</button>
+        <a class="btn btn-secondary" href="{% url 'events_program:entity_detail' entity_slug object.pk %}">Annuler</a>
+      </div>
+    {% endif %}
+  </form>
+{% endblock %}

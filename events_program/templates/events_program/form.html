@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header">
+    <div><h1>{{ page_title }}</h1><p class="lede">Les champs obligatoires doivent être renseignés avant l’enregistrement.</p></div>
+  </header>
+  <form class="ff-form" method="post" novalidate{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% if entity_slug == "events" and object.image %}
+      <div class="event-image-preview">
+        <p>Image actuelle</p>
+        <img src="{{ object.display_image_url }}" alt="Image actuelle de {{ object.title }}">
+      </div>
+    {% endif %}
+    {% for field in form %}
+      <div class="field{% if field.errors %} field--error{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="hint">{{ field.help_text }}</p>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Enregistrer</button>
+      <a class="btn btn-secondary" href="{% url 'events_program:entity_list' entity_slug %}">Annuler</a>
+    </div>
+  </form>
+{% endblock %}
