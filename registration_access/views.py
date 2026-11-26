@@ -171,7 +171,7 @@ class RegistrationDeleteView(AdministratorRequiredMixin, DeleteView):
         if self.object.tickets.filter(attendances__isnull=False).exists():
             messages.error(
                 self.request,
-                "Cette inscription possède des présences enregistrées. Supprimez d’abord les brouillons ; les entrées effectuées doivent être conservées.",
+                "Cette inscription possÃ¨de des prÃ©sences enregistrÃ©es. Supprimez dâ€™abord les brouillons ; les entrÃ©es effectuÃ©es doivent Ãªtre conservÃ©es.",
             )
             return HttpResponseRedirect(self.get_success_url())
         return super().form_valid(form)
@@ -201,7 +201,7 @@ class ParticipantRegistrationCreateView(LoginRequiredMixin, CreateView):
             create_registration_ticket(self.object)
         messages.success(
             self.request,
-            "Votre demande est enregistrée. Retrouvez votre billet pour le confirmer gratuitement ou simuler le paiement ; aucun débit réel n’est effectué.",
+            "Votre demande est enregistrÃ©e. Retrouvez votre billet pour le confirmer gratuitement ou simuler le paiement ; aucun dÃ©bit rÃ©el nâ€™est effectuÃ©.",
         )
         return response
 
@@ -221,13 +221,13 @@ class ParticipantRegistrationCancelView(LoginRequiredMixin, View):
         if not can_cancel:
             messages.error(
                 request,
-                "Seule une inscription en attente de paiement peut être annulée ici. Contactez l’administration pour toute autre demande.",
+                "Seule une inscription en attente de paiement peut Ãªtre annulÃ©e ici. Contactez lâ€™administration pour toute autre demande.",
             )
         else:
             registration.status = Registration.STATUS_CANCELLED
             registration.save(update_fields=["status"])
             sync_registration_tickets(registration)
-            messages.success(request, "Votre inscription a été annulée.")
+            messages.success(request, "Votre inscription a Ã©tÃ© annulÃ©e.")
         return redirect("registration_access:my_registrations")
 
 
@@ -245,12 +245,12 @@ class ParticipantRegistrationConfirmView(LoginRequiredMixin, FormView):
             self.registration.status != Registration.STATUS_PENDING
             or self.registration.payment_status != Registration.PAYMENT_PENDING
         ):
-            messages.info(request, "Cette inscription a déjà été traitée.")
+            messages.info(request, "Cette inscription a dÃ©jÃ  Ã©tÃ© traitÃ©e.")
             return redirect("registration_access:my_tickets")
         if not self.tickets or any(
             ticket.status != Ticket.STATUS_PENDING for ticket in self.tickets
         ):
-            messages.error(request, "Aucun billet en attente ne peut être confirmé.")
+            messages.error(request, "Aucun billet en attente ne peut Ãªtre confirmÃ©.")
             return redirect("registration_access:my_tickets")
         self.total_amount = sum(
             (ticket.price for ticket in self.tickets),
@@ -289,10 +289,10 @@ class ParticipantRegistrationConfirmView(LoginRequiredMixin, FormView):
             if registration.payment_status == Registration.PAYMENT_PAID:
                 messages.success(
                     self.request,
-                    "Votre paiement de test est confirmé. Votre billet est activé.",
+                    "Votre paiement de test est confirmÃ©. Votre billet est activÃ©.",
                 )
             else:
-                messages.success(self.request, "Votre billet gratuit est confirmé.")
+                messages.success(self.request, "Votre billet gratuit est confirmÃ©.")
         return redirect("registration_access:my_tickets")
 
 
@@ -411,7 +411,7 @@ class TicketDeleteView(AdministratorRequiredMixin, DeleteView):
         if self.object.attendances.exists():
             messages.error(
                 self.request,
-                "Ce billet possède des présences liées et ne peut pas être supprimé.",
+                "Ce billet possÃ¨de des prÃ©sences liÃ©es et ne peut pas Ãªtre supprimÃ©.",
             )
             return HttpResponseRedirect(self.get_success_url())
         return super().form_valid(form)
@@ -527,7 +527,7 @@ class AttendanceDeleteView(AdministratorRequiredMixin, DeleteView):
         if self.object.check_in:
             messages.error(
                 self.request,
-                "Une présence avec une entrée enregistrée ne peut pas être supprimée.",
+                "Une prÃ©sence avec une entrÃ©e enregistrÃ©e ne peut pas Ãªtre supprimÃ©e.",
             )
             return HttpResponseRedirect(self.get_success_url())
         return super().form_valid(form)
@@ -549,7 +549,7 @@ class AttendanceCheckInView(AdministratorRequiredMixin, FormView):
             return self.form_invalid(form)
         messages.success(
             self.request,
-            f"Entrée enregistrée pour {attendance.ticket.registration.user}.",
+            f"EntrÃ©e enregistrÃ©e pour {attendance.ticket.registration.user}.",
         )
         return HttpResponseRedirect(
             reverse_lazy(
@@ -568,7 +568,7 @@ class AttendanceCheckOutView(AdministratorRequiredMixin, View):
         else:
             messages.success(
                 request,
-                f"Sortie enregistrée pour {attendance.ticket.registration.user}.",
+                f"Sortie enregistrÃ©e pour {attendance.ticket.registration.user}.",
             )
         return HttpResponseRedirect(
             reverse_lazy("registration_access:entity_list", kwargs={"entity": "attendances"})
@@ -655,13 +655,16 @@ class AccessPointDeleteView(AdministratorRequiredMixin, DeleteView):
         if self.object.attendances.exists():
             messages.error(
                 self.request,
-                "Ce point d’accès possède des présences liées et ne peut pas être supprimé.",
+                "Ce point dâ€™accÃ¨s possÃ¨de des prÃ©sences liÃ©es et ne peut pas Ãªtre supprimÃ©.",
             )
             return HttpResponseRedirect(self.get_success_url())
         return super().form_valid(form)
 
 
 def module_home(request):
+    from datetime import date, timedelta
+    from django.db.models.functions import TruncMonth
+
     is_administrator = (
         request.user.is_authenticated and request.user.is_administrator
     )
@@ -686,11 +689,161 @@ def module_home(request):
         },
         {
             "slug": "access-points",
-            "title": "Points d’accès",
+            "title": "Points d'accès",
             "description": "Organisez les entrées, emplacements et capacités.",
             "icon": "access",
         },
     ]
+
+    dashboard = None
+    if is_administrator:
+        # ---- KPIs ----
+        total_reg = Registration.objects.count()
+        confirmed = Registration.objects.filter(status=Registration.STATUS_CONFIRMED).count()
+        pending = Registration.objects.filter(status=Registration.STATUS_PENDING).count()
+        total_tickets = Ticket.objects.count()
+        used_tickets = Ticket.objects.filter(status=Ticket.STATUS_USED).count()
+        total_attendances = Attendance.objects.count()
+        total_access_points = AccessPoint.objects.count()
+
+        kpis = [
+            {
+                "label": "Inscriptions totales",
+                "value": total_reg,
+                "hint": f"{confirmed} confirmée(s)",
+                "icon": "clipboard-list",
+                "tone": "blue",
+                "url": "/registration-access/registrations/",
+            },
+            {
+                "label": "En attente",
+                "value": pending,
+                "hint": "À traiter",
+                "icon": "clock",
+                "tone": "orange",
+                "url": "/registration-access/registrations/",
+            },
+            {
+                "label": "Billets émis",
+                "value": total_tickets,
+                "hint": f"{used_tickets} utilisé(s)",
+                "icon": "ticket",
+                "tone": "teal",
+                "url": "/registration-access/tickets/",
+            },
+            {
+                "label": "Présences",
+                "value": total_attendances,
+                "hint": f"{total_access_points} point(s) d'accès",
+                "icon": "users",
+                "tone": "green",
+                "url": "/registration-access/attendances/",
+            },
+        ]
+
+        # ---- Chart : évolution inscriptions sur 6 mois ----
+        six_months_ago = date.today().replace(day=1) - timedelta(days=5 * 30)
+        monthly_qs = (
+            Registration.objects
+            .filter(registration_date__date__gte=six_months_ago)
+            .annotate(month=TruncMonth("registration_date"))
+            .values("month")
+            .annotate(count=Count("pk"))
+            .order_by("month")
+        )
+        evolution_data = [
+            {"label": r["month"].strftime("%b %Y"), "value": r["count"]}
+            for r in monthly_qs
+        ] or None
+
+        # ---- Chart : répartition statuts inscriptions ----
+        status_counts = (
+            Registration.objects
+            .values("status")
+            .annotate(count=Count("pk"))
+            .order_by("status")
+        )
+        STATUS_LABELS = {
+            Registration.STATUS_PENDING: "En attente",
+            Registration.STATUS_CONFIRMED: "Confirmées",
+            Registration.STATUS_CANCELLED: "Annulées",
+        }
+        status_data = [
+            {"label": STATUS_LABELS.get(r["status"], r["status"]), "value": r["count"]}
+            for r in status_counts
+        ] or None
+
+        # ---- Chart : billets par catégorie ----
+        ticket_cat_counts = (
+            Ticket.objects
+            .values("category")
+            .annotate(count=Count("pk"))
+            .order_by("category")
+        )
+        CAT_LABELS = {
+            Ticket.CATEGORY_STANDARD: "Standard",
+            Ticket.CATEGORY_VIP: "VIP",
+            Ticket.CATEGORY_GROUP: "Groupe",
+        }
+        ticket_cat_data = [
+            {"label": CAT_LABELS.get(r["category"], r["category"]), "value": r["count"]}
+            for r in ticket_cat_counts
+        ] or None
+
+        # ---- Alertes ----
+        alerts = []
+        if pending > 0:
+            alerts.append({
+                "title": f"{pending} inscription(s) en attente",
+                "text": "Des demandes attendent votre validation.",
+                "icon": "clock",
+                "tone": "warning",
+                "url": "/registration-access/registrations/",
+            })
+        cancelled = Registration.objects.filter(status=Registration.STATUS_CANCELLED).count()
+        if cancelled > 0:
+            alerts.append({
+                "title": f"{cancelled} inscription(s) annulée(s)",
+                "text": "Des inscriptions ont été annulées.",
+                "icon": "x-circle",
+                "tone": "danger",
+                "url": "/registration-access/registrations/",
+            })
+
+        # ---- Activité récente ----
+        recent_regs = (
+            Registration.objects
+            .select_related("user")
+            .order_by("-registration_date")[:8]
+        )
+        STATUS_ICONS = {
+            Registration.STATUS_PENDING: ("clock", "orange"),
+            Registration.STATUS_CONFIRMED: ("circle-check", "green"),
+            Registration.STATUS_CANCELLED: ("circle-x", "red"),
+        }
+        activities = []
+        for reg in recent_regs:
+            icon, tone = STATUS_ICONS.get(reg.status, ("clipboard-list", "blue"))
+            activities.append({
+                "text": f"Inscription — Événement #{reg.event_id}",
+                "meta": f"{reg.user.get_full_name() or reg.user.username} · {STATUS_LABELS.get(reg.status, reg.status)}",
+                "icon": icon,
+                "tone": tone,
+                "when": reg.registration_date,
+                "url": f"/registration-access/registrations/{reg.pk}/",
+            })
+
+        dashboard = {
+            "kpis": kpis,
+            "alerts": alerts,
+            "activities": activities,
+            "charts": {
+                "evolution": evolution_data,
+                "status": status_data,
+                "ticket_categories": ticket_cat_data,
+            },
+        }
+
     return render(
         request,
         "registration_access/home.html",
@@ -700,6 +853,7 @@ def module_home(request):
             "page_intro": MODULE["summary"],
             "is_administrator": is_administrator,
             "access_areas": access_areas,
+            "dashboard": dashboard,
         },
     )
 
@@ -746,3 +900,4 @@ def entity_view(action):
         return views[action].as_view()(request, **kwargs)
 
     return dispatch
+
