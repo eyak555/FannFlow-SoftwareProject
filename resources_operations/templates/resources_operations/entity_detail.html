@@ -1,0 +1,70 @@
+{% extends "core/layouts/detail.html" %}
+{% load l10n static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "resources_operations/components/navigation.html" %}
+  {{ block.super }}
+{% endblock %}
+
+{% block page_actions %}
+  <a class="btn btn-secondary" href="{% url 'resources_operations:entity_list' entity.slug %}">Retour à la liste</a>
+  <a class="btn btn-primary" href="{% url 'resources_operations:entity_update' entity.slug object.pk %}">Modifier</a>
+  <a class="btn btn-danger" href="{% url 'resources_operations:entity_delete' entity.slug object.pk %}">Supprimer</a>
+{% endblock %}
+
+{% block detail_fields %}
+  <dt>Identifiant</dt>
+  <dd class="data">#{{ object.pk }}</dd>
+  {% if entity.slug == "venues" %}
+    <dt>Type</dt>
+    <dd>{{ object.type }}</dd>
+    <dt>Adresse</dt>
+    <dd>{{ object.address }}</dd>
+    <dt>Coordonnées GPS</dt>
+    <dd>
+      {% if object.latitude is not None %}
+        <span class="data">{{ object.latitude|unlocalize }}, {{ object.longitude|unlocalize }}</span>
+        <a class="operations-map-link"
+           href="https://www.openstreetmap.org/?mlat={{ object.latitude|unlocalize }}&amp;mlon={{ object.longitude|unlocalize }}#map=17/{{ object.latitude|unlocalize }}/{{ object.longitude|unlocalize }}">
+          Ouvrir dans OpenStreetMap
+        </a>
+      {% else %}Non renseignées{% endif %}
+    </dd>
+    <dt>Capacité d’accueil</dt>
+    <dd>{{ object.capacity }} personne{{ object.capacity|pluralize }}</dd>
+    <dt>Surface</dt>
+    <dd>{% if object.surface is not None %}{{ object.surface|floatformat:2 }} m²{% else %}Non renseignée{% endif %}</dd>
+    <dt>Parking</dt>
+    <dd>{{ object.parking_capacity }} place{{ object.parking_capacity|pluralize }}</dd>
+    <dt>Accessibilité PMR</dt>
+    <dd>{{ object.accessibility|yesno:"Oui,Non" }}</dd>
+  {% elif entity.slug == "resources" %}
+    <dt>Type</dt>
+    <dd>{{ object.type }}</dd>
+    <dt>Quantité en stock</dt>
+    <dd class="data">{{ object.quantity }}</dd>
+    <dt>Coût unitaire</dt>
+    <dd class="data">{{ object.unit_cost|floatformat:2 }}</dd>
+    <dt>Emplacement</dt>
+    <dd>{{ object.location }}</dd>
+  {% else %}
+    <dt>Ressource</dt>
+    <dd>
+      {% if can_manage_resources %}
+        <a href="{% url 'resources_operations:entity_detail' 'resources' object.resource_id %}">{{ object.resource }}</a>
+      {% else %}{{ object.resource }}{% endif %}
+    </dd>
+    <dt>Événement</dt>
+    <dd class="data">#{{ object.event_id }}</dd>
+    <dt>Quantité allouée</dt>
+    <dd class="data">{{ object.quantity }}</dd>
+    <dt>Début</dt>
+    <dd><time datetime="{{ object.start_time|date:'c' }}">{{ object.start_time|date:"d/m/Y à H:i" }}</time></dd>
+    <dt>Fin</dt>
+    <dd><time datetime="{{ object.end_time|date:'c' }}">{{ object.end_time|date:"d/m/Y à H:i" }}</time></dd>
+    <dt>Statut</dt>
+    <dd>{% include "resources_operations/components/allocation_status.html" %}</dd>
+  {% endif %}
+{% endblock %}

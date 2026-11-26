@@ -1,0 +1,16 @@
+<nav class="operations-nav" aria-label="Resources & Operations">
+  <div class="operations-nav__links">
+    <a href="{% url 'resources_operations:home' %}"
+       {% if request.resolver_match.url_name == "home" %}aria-current="page"{% endif %}>Vue d’ensemble</a>
+    {% for section in sections %}
+      <a href="{% url 'resources_operations:entity_list' section.slug %}"
+         {% if entity.slug == section.slug %}aria-current="location"{% endif %}>{{ section.plural }}</a>
+    {% endfor %}
+  </div>
+  {% if show_local_logout %}
+    <form method="post" action="{% url 'resources_operations:logout' %}">
+      {% csrf_token %}
+      <button class="operations-signout" type="submit">Se déconnecter</button>
+    </form>
+  {% endif %}
+</nav>

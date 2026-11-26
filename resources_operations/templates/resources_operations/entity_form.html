@@ -1,0 +1,22 @@
+{% extends "core/layouts/form.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "resources_operations/components/navigation.html" %}
+  {{ block.super }}
+{% endblock %}
+
+{% block form_fields %}
+  <div class="operations-form-fields">{{ block.super }}</div>
+{% endblock %}
+
+{% block form_actions %}
+  <button class="btn btn-primary" type="submit">Enregistrer</button>
+  {% if object %}
+    <a class="btn btn-secondary" href="{% url 'resources_operations:entity_detail' entity.slug object.pk %}">Annuler</a>
+  {% else %}
+    <a class="btn btn-secondary" href="{% url 'resources_operations:entity_list' entity.slug %}">Annuler</a>
+  {% endif %}
+{% endblock %}

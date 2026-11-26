@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from core.access import can_access_backoffice, is_backoffice_match
 from core.registry import get_modules
+from resources_operations.entities import get_accessible_sections
 
 # Pour un participant, certains modules ont un équivalent côté site public.
 PARTICIPANT_DESTINATIONS = {
@@ -27,13 +28,16 @@ def _module_link(module, user):
 
 def navigation(request):
     user = request.user
+    has_backoffice_access = can_access_backoffice(user)
     modules = []
     for module in get_modules():
         href, locked = _module_link(module, user)
+        if has_backoffice_access and module["app_name"] == "resources_operations":
+            module = {**module, "entities": get_accessible_sections(user)}
         modules.append({**module, "href": href, "locked": locked})
 
     match = request.resolver_match
-    is_backoffice = is_backoffice_match(match) and can_access_backoffice(user)
+    is_backoffice = is_backoffice_match(match) and has_backoffice_access
     namespace = getattr(match, "namespace", "")
     current_module = next((m for m in modules if m["app_name"] == namespace), None)
 
@@ -63,7 +67,7 @@ def navigation(request):
         "current_module_title": current_module["title"] if current_module else "Tableau de bord",
         "fannflow_modules": modules,
         "is_backoffice": is_backoffice,
-        "can_access_backoffice": can_access_backoffice(user),
+        "can_access_backoffice": has_backoffice_access,
         "current_namespace": getattr(match, "namespace", ""),
         "current_url_name": getattr(match, "url_name", ""),
     }

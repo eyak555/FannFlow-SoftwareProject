@@ -29,6 +29,8 @@ PUBLIC_URL_NAMES = {
     ("users_teams", "logout"),
     ("users_teams", "register"),
     ("users_teams", "password_forgotten"),
+    ("resources_operations", "login"),
+    ("resources_operations", "logout"),
 }
 
 # Pages de modules destinées aussi aux participants : connexion requise,
