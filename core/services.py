@@ -77,6 +77,8 @@ def _event_payload(event, names):
             except ValueError:
                 image = ""
             break
+    if not image and hasattr(event, "display_image_url"):
+        image = event.display_image_url
     url = ""
     if hasattr(event, "get_absolute_url"):
         url = event.get_absolute_url()
@@ -90,12 +92,25 @@ def _event_payload(event, names):
         "title": getattr(event, "title", None) or str(event),
         "description": getattr(event, "description", "") or "",
         "start": start,
-        "category": _display(event, "category") if "category" in names else "",
+        "category": (
+            dict(getattr(type(event), "Category", ()).choices).get(
+                getattr(event, "category", ""),
+                _display(event, "category"),
+            )
+            if "category" in names and hasattr(getattr(type(event), "Category", None), "choices")
+            else (_display(event, "category") if "category" in names else "")
+        ),
         "event_type": _display(event, "event_type") if "event_type" in names else "",
+        "status": getattr(event, "lifecycle_status_label", ""),
         "location": location,
         "image": image,
         "url": url,
     }
+
+
+def event_card_payload(event):
+    """Affichage commun d’un événement dans les cartes du site public."""
+    return _event_payload(event, _field_names(type(event)))
 
 
 def upcoming_events(limit=6):

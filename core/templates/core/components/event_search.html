@@ -6,7 +6,7 @@ Paramètre : search = {venues, periods, filters}. Envoie vers le catalogue publi
   <label class="event-search__field event-search__field--text">
     <span class="visually-hidden">Mot clé</span>
     <i data-lucide="search" aria-hidden="true"></i>
-    <input type="search" name="q" value="{{ search.filters.q }}" placeholder="Mot clé : concert, théâtre, expo…">
+    <input type="search" name="q" value="{{ search.filters.q }}" placeholder="Titre, mot-clé…">
   </label>
   <label class="event-search__field">
     <span class="visually-hidden">Salle</span>
@@ -18,6 +18,41 @@ Paramètre : search = {venues, periods, filters}. Envoie vers le catalogue publi
       {% endfor %}
     </select>
   </label>
+  {% if search.categories %}
+    <label class="event-search__field">
+      <span class="visually-hidden">Catégorie</span>
+      <i data-lucide="shapes" aria-hidden="true"></i>
+      <select name="categorie">
+        <option value="">Toutes les catégories</option>
+        {% for value, label in search.categories %}
+          <option value="{{ value }}"{% if search.filters.categorie == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  {% endif %}
+  {% if search.statuses %}
+    <label class="event-search__field">
+      <span class="visually-hidden">Statut</span>
+      <i data-lucide="calendar-check" aria-hidden="true"></i>
+      <select name="status">
+        <option value="">Tous les statuts</option>
+        {% for value, label in search.statuses %}
+          <option value="{{ value }}"{% if search.filters.status == value %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  {% endif %}
+  {% if search.sorts %}
+    <label class="event-search__field">
+      <span class="visually-hidden">Trier les événements</span>
+      <i data-lucide="arrow-down-wide-narrow" aria-hidden="true"></i>
+      <select name="sort">
+        {% for value, label in search.sorts %}
+          <option value="{{ value }}"{% if search.filters.sort == value or not search.filters.sort and value == "date" %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  {% endif %}
   <label class="event-search__field">
     <span class="visually-hidden">Date</span>
     <i data-lucide="calendar-days" aria-hidden="true"></i>

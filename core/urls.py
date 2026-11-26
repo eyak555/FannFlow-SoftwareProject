@@ -8,6 +8,7 @@ app_name = "core"
 urlpatterns = [
     path("", views.home, name="home"),
     path("evenements/", views.events, name="events"),
+    path("evenements/<int:pk>/", views.event_detail, name="event_detail"),
     path("mon-espace/", views.my_space, name="my_space"),
     # Compte de l'utilisateur connecté (fenêtre « Mon profil »)
     path("mon-profil/", account.profile, name="profile"),

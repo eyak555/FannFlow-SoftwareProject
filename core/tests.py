@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
+from events_program.models import Event
 from registration_access.models import Registration, Ticket
 from users_teams.models import User
 
@@ -28,9 +29,9 @@ class CorePagesTests(TestCase):
         response = self.client.get(reverse("core:home"))
         self.assertEqual(response.context["snapshot"]["registrations"], 1)
 
-    def test_home_shows_events_empty_state_without_event_model(self):
+    def test_home_shows_empty_event_catalog_when_no_events_are_published(self):
         response = self.client.get(reverse("core:home"))
-        self.assertContains(response, "Le programme arrive bientôt")
+        self.assertContains(response, "Aucun événement à venir")
 
     def test_public_events_page(self):
         response = self.client.get(reverse("core:events"))
@@ -173,6 +174,77 @@ class EventSearchTests(TestCase):
                 response = self.client.get(reverse(name), {"q": "x", "date": "semaine"})
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, 'class="event-search"')
+
+    def test_public_event_catalog_uses_database_pagination_and_filters(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        now = timezone.now()
+        for index in range(10):
+            start = now + timedelta(days=index + 1)
+            Event.objects.create(
+                title=f"Concert {index:02d}",
+                description="Musique et scène.",
+                event_type=Event.EventType.CONCERT,
+                category=Event.Category.MUSIC,
+                start_date=start,
+                end_date=start + timedelta(hours=2),
+                registration_deadline=start - timedelta(days=1),
+                capacity=100,
+                location="Salle principale",
+                status=Event.Status.PUBLISHED,
+            )
+        Event.objects.create(
+            title="Conférence",
+            description="Une autre catégorie.",
+            event_type=Event.EventType.CONFERENCE,
+            category=Event.Category.CONFERENCE,
+            start_date=now + timedelta(days=2),
+            end_date=now + timedelta(days=2, hours=2),
+            registration_deadline=now + timedelta(days=1),
+            capacity=100,
+            location="Autre salle",
+            status=Event.Status.PUBLISHED,
+        )
+        Event.objects.create(
+            title="Brouillon caché",
+            description="Non public.",
+            event_type=Event.EventType.OTHER,
+            category=Event.Category.OTHER,
+            start_date=now + timedelta(days=2),
+            end_date=now + timedelta(days=2, hours=2),
+            registration_deadline=now + timedelta(days=1),
+            capacity=100,
+            location="Salle principale",
+            status=Event.Status.DRAFT,
+        )
+
+        filters = {
+            "q": "concert",
+            "salle": "Salle principale",
+            "categorie": Event.Category.MUSIC,
+            "status": "upcoming",
+            "sort": "title",
+        }
+        page_one = self.client.get(reverse("core:events"), filters)
+        self.assertEqual(page_one.context["result_count"], 10)
+        self.assertEqual(len(page_one.context["events"]["items"]), 9)
+        self.assertEqual(page_one.context["events"]["items"][0]["title"], "Concert 00")
+        self.assertContains(page_one, 'name="categorie"')
+        self.assertContains(page_one, 'name="status"')
+        self.assertContains(page_one, "status=upcoming")
+
+        page_two = self.client.get(reverse("core:events"), {**filters, "page": 2})
+        self.assertEqual(page_two.context["page_obj"].number, 2)
+        self.assertEqual(
+            [item["title"] for item in page_two.context["events"]["items"]],
+            ["Concert 09"],
+        )
+
+        empty_result = self.client.get(reverse("core:events"), {**filters, "q": "aucun"})
+        self.assertEqual(empty_result.context["result_count"], 0)
+        self.assertContains(empty_result, "Aucun événement ne correspond")
 
 
 class AccountSelfServiceTests(TestCase):

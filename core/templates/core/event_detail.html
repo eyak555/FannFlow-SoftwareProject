@@ -1,0 +1,48 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-hero">
+    <p class="eyebrow">{{ event.get_event_type_display }}{% if event.category %} · {{ event.category_display }}{% endif %}</p>
+    <h1>{{ event.title }}</h1>
+    <p>{{ event.description|linebreaksbr }}</p>
+  </header>
+  <figure class="event-detail__hero">
+    <img src="{{ event_image }}" alt="Illustration de {{ event.title }}">
+  </figure>
+  <section class="module-panel">
+    <dl class="detail">
+      <dt>Dates</dt><dd>Du {{ event.start_date|date:"j F Y à H:i" }} au {{ event.end_date|date:"j F Y à H:i" }}</dd>
+      <dt>Lieu</dt><dd>{{ event.location }}</dd>
+      <dt>Capacité</dt><dd>{{ event.capacity }} places</dd>
+      <dt>Clôture des inscriptions</dt><dd>{{ event.registration_deadline|date:"j F Y à H:i" }}</dd>
+      <dt>Conditions d’âge</dt><dd>{{ event.age_requirement_display }}</dd>
+      <dt>Billet Standard</dt><dd>{% if event.ticket_price %}{{ event.ticket_price }} DT{% else %}Gratuit{% endif %}</dd>
+      <dt>Billet VIP</dt><dd>{% if event.vip_ticket_price %}{{ event.vip_ticket_price }} DT{% else %}Gratuit{% endif %}</dd>
+    </dl>
+    {% if event_access_error %}
+      <p class="event-access-warning" role="alert">{{ event_access_error }}</p>
+      {% if user.is_authenticated %}
+        <span class="btn btn-secondary" aria-disabled="true">Inscription indisponible</span>
+      {% else %}
+        <p><a class="btn btn-primary" href="{% url 'registration_access:registration_request' %}?event_id={{ event.pk }}">Se connecter pour vérifier l’accès</a></p>
+      {% endif %}
+    {% else %}
+      <p><a class="btn btn-primary" href="{% url 'registration_access:registration_request' %}?event_id={{ event.pk }}">Demander une inscription</a></p>
+    {% endif %}
+  </section>
+  <section class="module-panel">
+    <div class="panel-heading"><div><p class="panel-kicker">Programme</p><h2>Activités</h2></div></div>
+    {% for activity in event.activities.all %}
+      <article>
+        <h3>{{ activity.title }}</h3>
+        <p>{{ activity.description|default:activity.activity_type }}</p>
+        <p>{{ activity.start_time|date:"j F Y, H:i" }} – {{ activity.end_time|date:"H:i" }}{% if activity.room %} · {{ activity.room }}{% endif %}</p>
+        {% if activity.speakers.all %}
+          <p>Intervenants : {% for speaker in activity.speakers.all %}{{ speaker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+        {% endif %}
+      </article>
+    {% empty %}
+      <p>Le programme détaillé sera bientôt disponible.</p>
+    {% endfor %}
+  </section>
+{% endblock %}

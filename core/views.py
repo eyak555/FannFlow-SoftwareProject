@@ -2,12 +2,15 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
 from core.access import can_access_backoffice
-from core.services import platform_snapshot, upcoming_events
+from core.services import event_card_payload, platform_snapshot, upcoming_events
+from events_program.models import Event
 
 
 def _organize_url(user):
@@ -99,23 +102,136 @@ def filter_events(items, params):
 
 
 def events(request):
-    """Catalogue public des événements publiés, avec recherche."""
-    data = upcoming_events(limit=48)
-    all_items = data["items"]
-    filters = {key: request.GET.get(key, "") for key in ("q", "salle", "date", "categorie")}
-    data = {**data, "items": filter_events(all_items, request.GET)}
+    """Catalogue public paginé, filtré et recherché en base."""
+    filters = {
+        key: request.GET.get(key, "").strip()
+        for key in ("q", "salle", "date", "categorie", "status", "sort")
+    }
+    queryset = Event.objects.filter(status=Event.Status.PUBLISHED)
+    if filters["q"]:
+        queryset = queryset.filter(
+            Q(title__icontains=filters["q"])
+            | Q(description__icontains=filters["q"])
+        )
+
+    venues = list(
+        Event.objects.filter(status=Event.Status.PUBLISHED)
+        .exclude(location="")
+        .order_by("location")
+        .values_list("location", flat=True)
+        .distinct()
+    )
+    categories = Event.Category.choices
+    valid_categories = {value for value, _ in categories}
+    if filters["categorie"] in valid_categories:
+        queryset = queryset.filter(category=filters["categorie"])
+    if filters["salle"] in venues:
+        queryset = queryset.filter(location=filters["salle"])
+
+    today = timezone.localdate()
+    if filters["date"] in {value for value, _ in DATE_PERIODS}:
+        if filters["date"] == "aujourdhui":
+            first_day = today
+            last_day = today + timedelta(days=1)
+        elif filters["date"] == "week-end":
+            first_day = (
+                today + timedelta(days=(5 - today.weekday()) % 7)
+                if today.weekday() != 6
+                else today - timedelta(days=1)
+            )
+            last_day = first_day + timedelta(days=2)
+        elif filters["date"] == "semaine":
+            first_day = today
+            last_day = today + timedelta(days=7 - today.weekday())
+        else:
+            first_day = today.replace(day=1)
+            last_day = (first_day.replace(day=28) + timedelta(days=4)).replace(day=1)
+        start = timezone.make_aware(datetime.combine(first_day, datetime.min.time()))
+        end = timezone.make_aware(datetime.combine(last_day, datetime.min.time()))
+        queryset = queryset.filter(start_date__gte=start, start_date__lt=end)
+
+    status_filters = {
+        "upcoming": Q(start_date__gt=timezone.now()),
+        "ongoing": Q(start_date__lte=timezone.now(), end_date__gte=timezone.now()),
+        "completed": Q(end_date__lt=timezone.now()),
+    }
+    if filters["status"] in status_filters:
+        queryset = queryset.filter(status_filters[filters["status"]])
+
+    sort_options = {
+        "date": ("start_date", "Date : plus proche"),
+        "date_desc": ("-start_date", "Date : plus éloignée"),
+        "title": ("title", "Nom : A à Z"),
+        "title_desc": ("-title", "Nom : Z à A"),
+    }
+    sort = filters["sort"] if filters["sort"] in sort_options else "date"
+    queryset = queryset.order_by(sort_options[sort][0], "pk")
+    paginator = Paginator(queryset, 9)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_numbers = [
+        {"number": number, "ellipsis": False}
+        if isinstance(number, int)
+        else {"number": "", "ellipsis": True}
+        for number in paginator.get_elided_page_range(page_obj.number, on_each_side=1, on_ends=1)
+    ]
+    pagination_filters = request.GET.copy()
+    pagination_filters.pop("page", None)
+    has_filters = any(filters[key] for key in ("q", "salle", "date", "categorie", "status"))
     return render(
         request,
         "core/events.html",
         {
             "page_title": "Événements",
-            "events": data,
-            "has_filters": any(filters.values()),
-            "unfiltered_count": len(all_items),
-            "categories": sorted({item["category"] for item in all_items if item["category"]}),
+            "events": {
+                "available": True,
+                "error": False,
+                "items": [event_card_payload(event) for event in page_obj.object_list],
+            },
+            "page_obj": page_obj,
+            "page_numbers": page_numbers,
+            "pagination_query": pagination_filters.urlencode(),
+            "result_count": paginator.count,
+            "has_filters": has_filters,
+            "unfiltered_count": Event.objects.filter(status=Event.Status.PUBLISHED).count(),
+            "categories": categories,
             "selected_category": filters["categorie"],
-            "search": {**search_options(all_items), "filters": filters},
+            "status_choices": (
+                ("upcoming", "À venir"),
+                ("ongoing", "En cours"),
+                ("completed", "Terminés"),
+            ),
+            "sort_choices": tuple((value, label) for value, (_, label) in sort_options.items()),
+            "search": {
+                "venues": venues,
+                "periods": DATE_PERIODS,
+                "categories": categories,
+                "statuses": (
+                    ("upcoming", "À venir"),
+                    ("ongoing", "En cours"),
+                    ("completed", "Terminés"),
+                ),
+                "sorts": tuple((value, label) for value, (_, label) in sort_options.items()),
+                "filters": filters,
+            },
             "organize_url": _organize_url(request.user),
+        },
+    )
+
+
+def event_detail(request, pk):
+    event = get_object_or_404(
+        Event.objects.prefetch_related("activities__speakers"),
+        pk=pk,
+        status=Event.Status.PUBLISHED,
+    )
+    return render(
+        request,
+        "core/event_detail.html",
+        {
+            "event": event,
+            "event_image": event.display_image_url,
+            "event_access_error": event.age_access_error(request.user),
+            "page_title": event.title,
         },
     )
 
