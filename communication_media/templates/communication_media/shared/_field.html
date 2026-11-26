@@ -1,0 +1,22 @@
+{% comment %}
+  Champ de formulaire : libellé, astérisque si obligatoire, aide ou erreurs.
+  Les cases à cocher multiples sont présentées comme un groupe nommé.
+{% endcomment %}
+{% if field.widget_type == "eventcheckboxselectmultiple" or field.widget_type == "checkboxselectmultiple" %}
+  <div class="field cm-choice-field{% if field.errors %} field--error{% endif %}" role="group" aria-labelledby="{{ field.auto_id }}_label">
+    <p class="cm-choice-label" id="{{ field.auto_id }}_label">{{ field.label }}</p>
+    {% if field.field.queryset.exists %}
+      <div class="cm-choices" data-event-choices>{{ field }}</div>
+      <p class="press-muted cm-choices-empty" data-event-choices-empty hidden>Aucun élément pour cet événement.</p>
+    {% else %}
+      <p class="press-muted">Aucun élément enregistré pour le moment.</p>
+    {% endif %}
+    {% if field.errors %}
+      <ul class="press-field-errors">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    {% elif field.help_text %}
+      <p class="hint">{{ field.help_text }}</p>
+    {% endif %}
+  </div>
+{% else %}
+  {% include "communication_media/media_contacts/_field.html" %}
+{% endif %}

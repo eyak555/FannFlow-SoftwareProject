@@ -1,0 +1,60 @@
+{% extends "core/layouts/list.html" %}
+
+{% comment %}
+  Base des listes du module : fil d'Ariane, bouton « Ajouter », filtre par
+  événement, compteur, état vide. Chaque entité définit ``table_head`` et ``rows``.
+{% endcomment %}
+
+{% block extra_css %}{% include "communication_media/shared/_css.html" %}{% endblock %}
+
+{% block content %}
+  <div class="press-directory cm-page">
+    {% include "communication_media/shared/_breadcrumb.html" %}
+    {{ block.super }}
+  </div>
+{% endblock %}
+
+{% block page_actions %}
+  <a class="btn btn-primary" href="{{ create_url }}">
+    <i data-lucide="plus" aria-hidden="true"></i> Ajouter
+  </a>
+{% endblock %}
+
+{% block filters %}
+  {% if events %}
+    <form class="cm-filter" method="get" role="search" aria-label="Filtrer par événement">
+      <label for="filtre-evenement">Événement</label>
+      <select class="ff-input" id="filtre-evenement" name="evenement">
+        <option value="">Tous les événements</option>
+        {% for event in events %}
+          <option value="{{ event.pk }}" {% if selected_event.pk == event.pk %}selected{% endif %}>{{ event.title }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary">Filtrer</button>
+      {% if selected_event %}<a class="text-link" href="{{ list_url }}">Réinitialiser</a>{% endif %}
+    </form>
+  {% endif %}
+  {% if page_obj %}
+    <p class="press-count">
+      <span class="data">{{ page_obj.paginator.count }}</span>
+      élément{{ page_obj.paginator.count|pluralize }} enregistré{{ page_obj.paginator.count|pluralize }}{% if selected_event %} pour « {{ selected_event.title }} »{% endif %}
+    </p>
+  {% endif %}
+{% endblock %}
+
+{% block table_body %}
+  {% if items %}
+    {% block rows %}{% endblock %}
+  {% elif selected_event %}
+    <tr>
+      <td class="empty-cell press-empty" colspan="5">
+        {% include "core/components/empty_state.html" with title="Aucun élément pour cet événement" text="Changez de filtre ou ajoutez un premier élément." %}
+        <a class="btn btn-primary" href="{{ create_url }}">{{ crud.add_label }}</a>
+      </td>
+    </tr>
+  {% else %}
+    {% include "communication_media/shared/_empty_row.html" with colspan=5 %}
+  {% endif %}
+{% endblock %}
+
+{% block after_table %}{% endblock %}

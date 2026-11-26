@@ -1,0 +1,40 @@
+{% extends "core/layouts/detail.html" %}
+
+{% comment %}
+  Base des fiches : en-tête (titre, pastilles, Modifier / Supprimer),
+  puis les blocs ``body`` et ``meta`` propres à chaque entité.
+{% endcomment %}
+
+{% block extra_css %}{% include "communication_media/shared/_css.html" %}{% endblock %}
+
+{% block content %}
+  <div class="press-directory press-detail cm-page">
+    {% include "communication_media/shared/_breadcrumb.html" with current=page_title %}
+
+    <header class="page-header press-card-header">
+      <div class="press-identity">
+        {% block identity_icon %}{% endblock %}
+        <div>
+          <h1>{% block heading %}{{ page_title }}{% endblock %}</h1>
+          <p class="press-detail-org">{% block subtitle %}{% endblock %}</p>
+          <div class="cm-badges">{% block badges %}{% endblock %}</div>
+        </div>
+      </div>
+      <div class="page-header__actions">
+        <a class="btn btn-primary" href="{{ update_url }}">Modifier</a>
+        <a class="btn btn-danger" href="{{ delete_url }}">Supprimer</a>
+      </div>
+    </header>
+
+    {% block body %}{% endblock %}
+
+    <section aria-labelledby="infos-titre">
+      <h2 class="press-section-title" id="infos-titre">Informations</h2>
+      <dl class="detail">
+        {% block meta %}{% endblock %}
+      </dl>
+    </section>
+
+    <p class="press-back"><a class="text-link" href="{{ list_url }}">← Retour à la liste « {{ crud.list_title }} »</a></p>
+  </div>
+{% endblock %}

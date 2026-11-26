@@ -1,0 +1,33 @@
+{% extends "communication_media/shared/list_base.html" %}
+
+{% block table_head %}
+  {% if items %}
+    <tr>
+      <th scope="col">Communication</th>
+      <th scope="col">Événement</th>
+      <th scope="col">Langue</th>
+      <th scope="col">Statut</th>
+      <th scope="col">Publication</th>
+      <th scope="col"><span class="visually-hidden">Actions</span></th>
+    </tr>
+  {% endif %}
+{% endblock %}
+
+{% block rows %}
+  {% for item in items %}
+    <tr>
+      <th scope="row" class="press-contact-cell">
+        <a class="press-contact-name" href="{{ item.get_absolute_url }}">{{ item.title }}</a>
+        <span class="press-contact-org">{{ item.get_type_display }}</span>
+      </th>
+      <td data-label="Événement">{% include "communication_media/shared/_event.html" with event=item.event %}</td>
+      <td data-label="Langue">{{ item.get_language_display }}</td>
+      <td data-label="Statut">{% include "communication_media/shared/_status.html" with value=item.status label=item.get_status_display %}</td>
+      <td data-label="Publication">
+        {% if item.publication_date %}<span class="data">{{ item.publication_date|date:"d/m/Y H:i" }}</span>
+        {% else %}<span class="press-muted">Non planifiée</span>{% endif %}
+      </td>
+      {% include "communication_media/shared/_row_actions.html" with label=item.title update_name="communication_media:communication_update" %}
+    </tr>
+  {% endfor %}
+{% endblock %}

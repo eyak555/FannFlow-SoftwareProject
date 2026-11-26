@@ -1,0 +1,6 @@
+{# Événement d'un élément : lien vers sa fiche du module Événements. Variable : event. #}
+{% if event %}
+  <a href="{% url 'events_program:entity_detail' 'events' event.pk %}">{{ event.title }}</a>
+{% else %}
+  <span class="press-muted cm-warning">Événement non renseigné</span>
+{% endif %}
