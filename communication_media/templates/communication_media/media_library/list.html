@@ -1,0 +1,36 @@
+{% extends "communication_media/shared/list_base.html" %}
+
+{% block table_head %}
+  {% if items %}
+    <tr>
+      <th scope="col">Média</th>
+      <th scope="col">Événement</th>
+      <th scope="col">Fichier</th>
+      <th scope="col">Communication</th>
+      <th scope="col"><span class="visually-hidden">Actions</span></th>
+    </tr>
+  {% endif %}
+{% endblock %}
+
+{% block rows %}
+  {% for item in items %}
+    <tr>
+      <th scope="row" class="press-contact-cell">
+        <div class="cm-media-cell">
+          {% include "communication_media/media_library/_thumb.html" %}
+          <div>
+            <a class="press-contact-name" href="{{ item.get_absolute_url }}">{{ item.name }}</a>
+            <span class="press-contact-org">{{ item.get_media_type_display }}</span>
+          </div>
+        </div>
+      </th>
+      <td data-label="Événement">{% include "communication_media/shared/_event.html" with event=item.event %}</td>
+      <td data-label="Fichier"><span class="data">{{ item.format }}</span> · {{ item.size|filesizeformat }}</td>
+      <td data-label="Communication">
+        {% if item.communication %}<a href="{{ item.communication.get_absolute_url }}">{{ item.communication.title|truncatechars:40 }}</a>
+        {% else %}<span class="press-muted">Aucune</span>{% endif %}
+      </td>
+      {% include "communication_media/shared/_row_actions.html" with label=item.name update_name="communication_media:media_update" %}
+    </tr>
+  {% endfor %}
+{% endblock %}

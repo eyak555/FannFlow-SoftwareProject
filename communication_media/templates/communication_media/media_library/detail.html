@@ -1,0 +1,45 @@
+{% extends "communication_media/shared/detail_base.html" %}
+
+{% block identity_icon %}{% include "communication_media/media_library/_thumb.html" %}{% endblock %}
+
+{% block subtitle %}{{ item.get_media_type_display }} · <span class="data">{{ item.format }}</span> · {{ item.size|filesizeformat }}{% endblock %}
+
+{% block body %}
+  <section aria-labelledby="apercu-titre">
+    <h2 class="press-section-title" id="apercu-titre">Aperçu</h2>
+    <div class="cm-preview">
+      {% if item.is_image %}
+        <img src="{{ item.url }}" alt="{{ item.name }}">
+      {% elif item.is_video %}
+        <video src="{{ item.url }}" controls preload="metadata">Votre navigateur ne lit pas cette vidéo.</video>
+      {% else %}
+        <p class="press-muted">Aperçu non disponible pour ce format.</p>
+      {% endif %}
+      <p>
+        <a class="btn btn-secondary" href="{{ item.url }}" {% if item.is_pdf or item.is_image or item.is_video %}target="_blank" rel="noopener"{% endif %}>
+          <i data-lucide="{% if item.is_pdf or item.is_image or item.is_video %}external-link{% else %}download{% endif %}" aria-hidden="true"></i>
+          {% if item.is_pdf or item.is_image or item.is_video %}Ouvrir le fichier{% else %}Télécharger le fichier{% endif %}
+        </a>
+      </p>
+    </div>
+  </section>
+{% endblock %}
+
+{% block meta %}
+  <dt>Événement</dt>
+  <dd>{% include "communication_media/shared/_event.html" with event=item.event %}</dd>
+  <dt>Fichier d’origine</dt>
+  <dd class="data">{{ item.original_filename }}</dd>
+  <dt>Adresse (URL)</dt>
+  <dd><a class="data" href="{{ item.url }}">{{ request.scheme }}://{{ request.get_host }}{{ item.url }}</a></dd>
+  <dt>Format</dt>
+  <dd class="data">{{ item.format }}</dd>
+  <dt>Taille</dt>
+  <dd>{{ item.size|filesizeformat }}{% if item.size >= 1024 %} <span class="press-muted">({{ item.size }} octets)</span>{% endif %}</dd>
+  <dt>Communication liée</dt>
+  <dd>{% if item.communication %}<a href="{{ item.communication.get_absolute_url }}">{{ item.communication.title }}</a>{% else %}<span class="press-muted">Aucune</span>{% endif %}</dd>
+  <dt>Téléversé le</dt>
+  <dd>{{ item.uploaded_at|date:"j F Y à H:i" }}</dd>
+  <dt>Dernière modification</dt>
+  <dd>{{ item.updated_at|date:"j F Y à H:i" }}</dd>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "communication_media/shared/detail_base.html" %}
+
+{% block identity_icon %}<span class="press-avatar" aria-hidden="true"><i data-lucide="folder-open"></i></span>{% endblock %}
+
+{% block subtitle %}Dossier de presse{% endblock %}
+
+{% block body %}
+  <section aria-labelledby="description-titre">
+    <h2 class="press-section-title" id="description-titre">Description</h2>
+    <div class="cm-text">{{ item.description|linebreaks }}</div>
+  </section>
+
+  <section aria-labelledby="communications-titre">
+    <h2 class="press-section-title" id="communications-titre">Communications incluses</h2>
+    {% with included=item.communications.all %}
+      {% if included %}
+        <ul class="cm-linked">
+          {% for communication in included %}
+            <li>
+              <span class="cm-thumb cm-thumb--icon" aria-hidden="true"><i data-lucide="megaphone"></i></span>
+              <a href="{{ communication.get_absolute_url }}">{{ communication.title }}</a>
+              <span class="press-muted">{{ communication.get_type_display }} · {{ communication.get_status_display }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="press-muted">Aucune communication dans ce dossier.</p>
+      {% endif %}
+    {% endwith %}
+  </section>
+
+  <section aria-labelledby="medias-titre">
+    <h2 class="press-section-title" id="medias-titre">Médias inclus</h2>
+    {% with included=item.media.all %}
+      {% if included %}
+        <ul class="cm-linked">
+          {% for media in included %}
+            <li>
+              {% include "communication_media/media_library/_thumb.html" with item=media %}
+              <a href="{{ media.get_absolute_url }}">{{ media.name }}</a>
+              <span class="press-muted">{{ media.get_media_type_display }} · {{ media.format }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="press-muted">Aucun média dans ce dossier.</p>
+      {% endif %}
+    {% endwith %}
+  </section>
+{% endblock %}
+
+{% block meta %}
+  <dt>Événement</dt>
+  <dd>{% include "communication_media/shared/_event.html" with event=item.event %}</dd>
+  <dt>Créé le</dt>
+  <dd>{{ item.created_at|date:"j F Y à H:i" }}</dd>
+  <dt>Dernière modification</dt>
+  <dd>{{ item.updated_at|date:"j F Y à H:i" }}</dd>
+{% endblock %}

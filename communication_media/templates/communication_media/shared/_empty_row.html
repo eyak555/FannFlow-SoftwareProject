@@ -1,0 +1,6 @@
+<tr>
+  <td class="empty-cell press-empty" colspan="{{ colspan }}">
+    {% include "core/components/empty_state.html" with title=crud.empty_title text=crud.empty_text %}
+    <a class="btn btn-primary" href="{{ create_url }}">{{ crud.add_label }}</a>
+  </td>
+</tr>

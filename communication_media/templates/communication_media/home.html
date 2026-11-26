@@ -1,0 +1,94 @@
+{% extends "core/base.html" %}
+
+{% comment %}
+  Accueil du Module 6 : même structure et mêmes classes que
+  core/layouts/module_home.html, avec les vrais compteurs du module.
+{% endcomment %}
+
+{% block extra_css %}{% include "communication_media/shared/_css.html" %}{% endblock %}
+
+{% block content %}
+  <div class="module-workspace module-workspace--full">
+    <div class="module-workspace-content">
+      <header class="module-page-header">
+        <div>
+          <p class="eyebrow"><i data-lucide="{{ module.icon|default:'megaphone' }}" aria-hidden="true"></i> {{ module.code }} · Espace de gestion</p>
+          <h1>{{ page_title }}</h1>
+          {% if page_intro %}<p class="lede">{{ page_intro }}</p>{% endif %}
+        </div>
+      </header>
+
+      <section class="module-stat-grid" aria-label="Résumé de l’espace">
+        <article class="module-stat">
+          <span>Communications</span>
+          <strong>{{ counts.communications }}</strong>
+          <small>dont {{ counts.drafts }} brouillon{{ counts.drafts|pluralize }}</small>
+        </article>
+        <article class="module-stat">
+          <span>Médias</span>
+          <strong>{{ counts.media }}</strong>
+          <small>fichiers enregistrés</small>
+        </article>
+        <article class="module-stat module-stat--accent">
+          <span>Publications</span>
+          <strong>{{ counts.publications }}</strong>
+          <small>dont {{ counts.scheduled }} programmée{{ counts.scheduled|pluralize }}</small>
+        </article>
+      </section>
+
+      <section class="module-content-grid">
+        <div class="module-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Gestion</p>
+              <h2>Fonctionnalités disponibles</h2>
+            </div>
+          </div>
+          <div class="module-entity-grid" aria-label="Fonctionnalités disponibles">
+            {% for card in cards %}
+              <article class="module-entity-card">
+                <span class="entity-index" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+                <div class="entity-card-content">
+                  <h3>{{ card.title }}</h3>
+                  <p>{{ card.text }} <span class="data">({{ card.count }})</span></p>
+                </div>
+                <div class="entity-actions">
+                  <a class="btn btn-secondary" href="{{ card.list_url }}">Ouvrir</a>
+                  <a class="btn btn-primary" href="{{ card.create_url }}">Ajouter</a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+
+        <aside class="module-panel module-info-panel" aria-label="Informations de l’espace">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Événements</p>
+              <h2>Contenus par événement</h2>
+            </div>
+          </div>
+          {% if event_rows %}
+            <ul class="cm-linked cm-event-summary">
+              {% for row in event_rows %}
+                <li>
+                  <a href="{% url 'communication_media:communication_list' %}?evenement={{ row.event.pk }}">{{ row.event.title }}</a>
+                  <span class="press-muted">{{ row.communications }} comm. · {{ row.media }} média{{ row.media|pluralize }} · {{ row.publications }} publ.</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="module-info-state">
+              <span aria-hidden="true">i</span>
+              <strong>Aucun événement</strong>
+              <p>Créez d’abord un événement dans le module Événements : chaque communication, média, dossier de presse et publication y est rattaché.</p>
+            </div>
+          {% endif %}
+          {% if counts.without_event %}
+            <p class="press-muted cm-warning">{{ counts.without_event }} élément{{ counts.without_event|pluralize }} sans événement (créé{{ counts.without_event|pluralize }} avant le lien) : modifiez-le{{ counts.without_event|pluralize }} pour le{{ counts.without_event|pluralize }} rattacher.</p>
+          {% endif %}
+        </aside>
+      </section>
+    </div>
+  </div>
+{% endblock %}

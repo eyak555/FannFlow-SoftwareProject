@@ -1,0 +1,35 @@
+{% extends "communication_media/shared/detail_base.html" %}
+
+{% block identity_icon %}<span class="press-avatar" aria-hidden="true"><i data-lucide="share-2"></i></span>{% endblock %}
+
+{% block heading %}Publication {{ item.get_platform_display }}{% endblock %}
+
+{% block subtitle %}Prévue le {{ item.publication_date|date:"j F Y à H:i" }}{% endblock %}
+
+{% block badges %}
+  <span class="press-badge cm-platform cm-platform--{{ item.platform }}">{{ item.get_platform_display }}</span>
+  {% include "communication_media/shared/_status.html" with value=item.status label=item.get_status_display %}
+{% endblock %}
+
+{% block body %}
+  <section aria-labelledby="contenu-titre">
+    <h2 class="press-section-title" id="contenu-titre">Contenu</h2>
+    <div class="cm-text">{{ item.content|linebreaks }}</div>
+    <p class="press-muted cm-count"><span class="data">{{ item.content|length }}</span> caractère{{ item.content|length|pluralize }}</p>
+  </section>
+{% endblock %}
+
+{% block meta %}
+  <dt>Événement</dt>
+  <dd>{% include "communication_media/shared/_event.html" with event=item.event %}</dd>
+  <dt>Plateforme</dt>
+  <dd>{{ item.get_platform_display }}</dd>
+  <dt>Date de publication</dt>
+  <dd>{{ item.publication_date|date:"j F Y à H:i" }}</dd>
+  <dt>Statut</dt>
+  <dd>{{ item.get_status_display }}</dd>
+  <dt>Créée le</dt>
+  <dd>{{ item.created_at|date:"j F Y à H:i" }}</dd>
+  <dt>Dernière modification</dt>
+  <dd>{{ item.updated_at|date:"j F Y à H:i" }}</dd>
+{% endblock %}

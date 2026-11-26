@@ -1,0 +1,44 @@
+{% extends "communication_media/shared/detail_base.html" %}
+
+{% block identity_icon %}<span class="press-avatar" aria-hidden="true"><i data-lucide="megaphone"></i></span>{% endblock %}
+
+{% block subtitle %}{{ item.get_type_display }} · {{ item.get_language_display }}{% endblock %}
+
+{% block badges %}{% include "communication_media/shared/_status.html" with value=item.status label=item.get_status_display %}{% endblock %}
+
+{% block body %}
+  <section aria-labelledby="contenu-titre">
+    <h2 class="press-section-title" id="contenu-titre">Contenu</h2>
+    <div class="cm-text" {% if item.language == "ar" %}dir="rtl" lang="ar"{% else %}lang="{{ item.language }}"{% endif %}>{{ item.content|linebreaks }}</div>
+  </section>
+
+  <section aria-labelledby="medias-titre">
+    <h2 class="press-section-title" id="medias-titre">Médias liés</h2>
+    {% with linked=item.media.all %}
+      {% if linked %}
+        <ul class="cm-linked">
+          {% for media in linked %}
+            <li>
+              {% include "communication_media/media_library/_thumb.html" with item=media %}
+              <a href="{{ media.get_absolute_url }}">{{ media.name }}</a>
+              <span class="press-muted">{{ media.get_media_type_display }} · {{ media.format }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="press-muted">Aucun média lié. <a href="{% url 'communication_media:media_create' %}">Ajouter un média</a> puis choisissez cette communication.</p>
+      {% endif %}
+    {% endwith %}
+  </section>
+{% endblock %}
+
+{% block meta %}
+  <dt>Événement</dt>
+  <dd>{% include "communication_media/shared/_event.html" with event=item.event %}</dd>
+  <dt>Date de publication</dt>
+  <dd>{% if item.publication_date %}{{ item.publication_date|date:"j F Y à H:i" }}{% else %}<span class="press-muted">Non planifiée</span>{% endif %}</dd>
+  <dt>Créée le</dt>
+  <dd>{{ item.created_at|date:"j F Y à H:i" }}</dd>
+  <dt>Dernière modification</dt>
+  <dd>{{ item.updated_at|date:"j F Y à H:i" }}</dd>
+{% endblock %}
