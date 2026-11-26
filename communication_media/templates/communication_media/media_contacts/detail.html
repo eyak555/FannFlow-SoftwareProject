@@ -1,0 +1,47 @@
+{% extends "core/layouts/detail.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'communication_media/css/press_directory.css' %}">{% endblock %}
+
+{% block content %}
+  <div class="press-directory press-detail">
+    {% include "communication_media/media_contacts/_breadcrumb.html" with current=contact.name %}
+
+    <header class="page-header press-card-header">
+      <div class="press-identity">
+        <span class="press-avatar" aria-hidden="true">{{ contact.name|slice:":1"|upper }}</span>
+        <div>
+          <h1>{{ contact.name }}</h1>
+          <p class="press-detail-org">{{ contact.organization|default:"Organisation non renseignée" }}</p>
+          {% include "communication_media/media_contacts/_role_badge.html" %}
+        </div>
+      </div>
+      <div class="page-header__actions">
+        <a class="btn btn-primary" href="{% url 'communication_media:media_contact_update' contact.pk %}">Modifier</a>
+        <a class="btn btn-danger" href="{% url 'communication_media:media_contact_delete' contact.pk %}">Supprimer</a>
+      </div>
+    </header>
+
+    <section aria-labelledby="coordonnees-titre">
+      <h2 class="press-section-title" id="coordonnees-titre">Coordonnées</h2>
+      <dl class="detail">
+        <dt>Adresse e-mail</dt>
+        <dd>
+          {% if contact.email %}<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+          {% else %}<span class="press-muted">Non renseignée</span>{% endif %}
+        </dd>
+        <dt>Téléphone</dt>
+        <dd>
+          {% if contact.phone %}<a class="data" href="tel:{{ contact.phone_href }}">{{ contact.phone }}</a>
+          {% else %}<span class="press-muted">Non renseigné</span>{% endif %}
+        </dd>
+        <dt>Ajouté le</dt>
+        <dd>{{ contact.created_at|date:"j F Y à H:i" }}</dd>
+        <dt>Dernière modification</dt>
+        <dd>{{ contact.updated_at|date:"j F Y à H:i" }}</dd>
+      </dl>
+    </section>
+
+    <p class="press-back"><a class="text-link" href="{% url 'communication_media:media_contact_list' %}">← Retour à l’annuaire</a></p>
+  </div>
+{% endblock %}
