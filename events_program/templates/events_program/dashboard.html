@@ -1,65 +1,194 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
 
 {% block content %}
-  <header class="page-header">
-    <div>
-      <p class="eyebrow">{{ module.code }} · Espace de gestion</p>
+  <header class="event-dash-head">
+    <div class="event-dash-head__copy">
+      <p class="eyebrow">{{ module.code }} · Pilotage événementiel</p>
       <h1>{{ page_title }}</h1>
-      <p class="lede">{{ page_intro }}</p>
+      <p>{{ page_intro }}</p>
     </div>
-    <div class="page-header__actions">
-      <a class="btn btn-primary" href="{% url 'events_program:entity_create' 'events' %}">Ajouter un événement</a>
+    <div class="event-dash-head__actions">
+      <a class="btn btn-secondary" href="{% url 'events_program:entity_list' 'events' %}">Voir les événements</a>
+      <a class="btn btn-primary" href="{% url 'events_program:entity_create' 'events' %}"><span aria-hidden="true">+</span> Créer un événement</a>
     </div>
   </header>
 
-  <section class="module-stat-grid" aria-label="Statistiques des événements">
-    <article class="module-stat"><span>Total événements</span><strong>{{ dashboard.counts.total }}</strong><small>tous statuts</small></article>
-    <article class="module-stat"><span>À venir</span><strong>{{ dashboard.counts.upcoming }}</strong><small>événements publiés</small></article>
-    <article class="module-stat module-stat--accent"><span>En cours</span><strong>{{ dashboard.counts.ongoing }}</strong><small>selon les dates</small></article>
-    <article class="module-stat"><span>Terminés</span><strong>{{ dashboard.counts.completed }}</strong><small>événements publiés</small></article>
-    <article class="module-stat"><span>Activités</span><strong>{{ dashboard.counts.activities }}</strong><small>au programme</small></article>
-    <article class="module-stat"><span>Inscriptions</span><strong>{{ dashboard.counts.registrations }}</strong><small>dans le module Inscriptions et Accès</small></article>
+  <form class="event-dash-filters" method="get" aria-label="Filtrer les statistiques événements">
+    <div class="event-dash-filters__heading">
+      <div><p class="panel-kicker">Analyse</p><h2>Filtres du tableau de bord</h2></div>
+      {% if request.GET %}<a class="btn btn-ghost btn-sm" href="{% url 'events_program:home' %}">Réinitialiser</a>{% endif %}
+    </div>
+    {% if not dashboard.filters_valid %}<p class="event-dash-filter-error" role="alert">Les filtres n’ont pas été appliqués. Corrigez les valeurs indiquées.</p>{% endif %}
+    {{ dashboard.filter_form.non_field_errors }}
+    <div class="event-dash-filters__fields">
+      <div class="field"><label for="{{ dashboard.filter_form.category.id_for_label }}">Catégorie</label>{{ dashboard.filter_form.category }}{{ dashboard.filter_form.category.errors }}</div>
+      <div class="field"><label for="{{ dashboard.filter_form.status.id_for_label }}">Statut</label>{{ dashboard.filter_form.status }}{{ dashboard.filter_form.status.errors }}</div>
+      <div class="field"><label for="{{ dashboard.filter_form.city.id_for_label }}">Ville / lieu</label>{{ dashboard.filter_form.city }}{{ dashboard.filter_form.city.errors }}</div>
+      <div class="field"><label for="{{ dashboard.filter_form.start_date.id_for_label }}">Début à partir du</label>{{ dashboard.filter_form.start_date }}{{ dashboard.filter_form.start_date.errors }}</div>
+      <div class="field"><label for="{{ dashboard.filter_form.end_date.id_for_label }}">Début jusqu’au</label>{{ dashboard.filter_form.end_date }}{{ dashboard.filter_form.end_date.errors }}</div>
+      <button class="btn btn-primary" type="submit">Appliquer</button>
+    </div>
+  </form>
+
+  <section class="event-dash-kpis" aria-label="Vue d’ensemble des événements">
+    <article class="event-dash-kpi event-dash-kpi--total">
+      <span class="event-dash-kpi__icon" aria-hidden="true">01</span>
+      <div><span class="event-dash-kpi__label">Total événements</span><strong>{{ dashboard.counts.total }}</strong><small>Tous statuts confondus</small></div>
+    </article>
+    <article class="event-dash-kpi event-dash-kpi--upcoming">
+      <span class="event-dash-kpi__icon" aria-hidden="true">02</span>
+      <div><span class="event-dash-kpi__label">À venir</span><strong>{{ dashboard.counts.upcoming }}</strong><small>Événements publiés</small></div>
+    </article>
+    <article class="event-dash-kpi event-dash-kpi--ongoing">
+      <span class="event-dash-kpi__icon" aria-hidden="true">03</span>
+      <div><span class="event-dash-kpi__label">En cours</span><strong>{{ dashboard.counts.ongoing }}</strong><small>En ce moment</small></div>
+    </article>
+    <article class="event-dash-kpi event-dash-kpi--completed">
+      <span class="event-dash-kpi__icon" aria-hidden="true">04</span>
+      <div><span class="event-dash-kpi__label">Terminés</span><strong>{{ dashboard.counts.completed }}</strong><small>Événements publiés</small></div>
+    </article>
   </section>
 
-  <section class="module-content-grid">
-    <div class="module-panel">
-      <div class="panel-heading">
-        <div><p class="panel-kicker">Programme</p><h2>Fonctionnalités</h2></div>
-      </div>
-      <div class="module-entity-grid">
-        {% for entity in module.entities %}
-          <article class="module-entity-card">
-            <span class="entity-index" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
-            <div class="entity-card-content"><h3>{{ entity.name }}</h3><p>Créer, consulter et gérer les données.</p></div>
-            <div class="entity-actions">
-              <a class="btn btn-secondary" href="{% url 'events_program:entity_list' entity.slug %}">Ouvrir</a>
-              <a class="btn btn-primary" href="{% url 'events_program:entity_create' entity.slug %}">Ajouter</a>
-            </div>
-          </article>
-        {% endfor %}
+  <section class="event-dash-secondary" aria-label="Indicateurs complémentaires">
+    <div><span>Activités programmées</span><strong>{{ dashboard.counts.activities }}</strong></div>
+    <div><span>Inscriptions confirmées</span><strong>{{ dashboard.counts.confirmed_registrations }}</strong></div>
+    <div><span>Entrées enregistrées</span><strong>{{ dashboard.counts.admissions }}</strong></div>
+    <div><span>Remplissage confirmé</span><strong>{{ dashboard.counts.fill_rate }}%</strong></div>
+    <div><span>Intervenants</span><strong>{{ dashboard.counts.speakers }}</strong></div>
+    <div><span>Brouillons</span><strong>{{ dashboard.counts.draft }}</strong></div>
+    <div><span>Événements annulés</span><strong>{{ dashboard.counts.cancelled }}</strong></div>
+  </section>
+
+  <section class="event-dash-charts" aria-label="Statistiques filtrées des événements">
+    <article class="event-dash-panel">
+      <div class="panel__head"><div><h2>Événements par mois de début</h2><p>Programmation sur six mois calendaires</p></div></div>
+      {% include "core/components/chart.html" with chart_id="events-schedule-chart" type="bar" data=dashboard.charts.events_by_month label="Événements programmés par mois" empty="Aucun événement sur cette période." %}
+    </article>
+    <article class="event-dash-panel">
+      <div class="panel__head"><div><h2>Inscriptions confirmées</h2><p>Évolution sur six mois calendaires</p></div></div>
+      {% include "core/components/chart.html" with chart_id="confirmed-registrations-chart" type="line" data=dashboard.charts.confirmed_by_month label="Inscriptions confirmées par mois" empty="Aucune inscription confirmée sur cette période." %}
+    </article>
+    <article class="event-dash-panel">
+      <div class="panel__head"><div><h2>Répartition par catégorie</h2><p>Événements correspondant aux filtres</p></div></div>
+      {% include "core/components/chart.html" with chart_id="event-categories-chart" type="doughnut" data=dashboard.charts.categories label="Événements par catégorie" size="sm" empty="Aucune catégorie à afficher." %}
+    </article>
+    <article class="event-dash-panel">
+      <div class="panel__head"><div><h2>Lieux les plus utilisés</h2><p>Ville du lieu enregistré ou lieu textuel</p></div></div>
+      {% include "core/components/chart.html" with chart_id="event-places-chart" type="bar" data=dashboard.charts.places label="Événements par ville ou lieu" size="sm" empty="Aucun lieu à afficher." %}
+    </article>
+  </section>
+
+  <section class="event-dash-panel event-dash-map-panel" aria-labelledby="event-dash-map-title">
+    <div class="panel__head">
+      <div><h2 id="event-dash-map-title">Carte des événements à venir</h2><p>Événements publiés avec un lieu géolocalisé, selon les filtres choisis</p></div>
+    </div>
+    {{ dashboard.map_events|json_script:"event-dashboard-map-points" }}
+    <div class="event-dashboard-map" data-dashboard-event-map data-tiles-url="{{ osm_tile_url }}">
+      <div class="event-dashboard-map__canvas" data-map-canvas role="application" aria-label="Carte interactive des prochains événements en Tunisie"></div>
+      <p class="event-dashboard-map__status" data-map-status role="status" aria-live="polite">Chargement de la carte…</p>
+    </div>
+    {% if dashboard.map_truncated %}<p class="event-dash-muted">La carte présente les 150 prochains événements géolocalisés.</p>{% endif %}
+  </section>
+
+  <section class="event-dash-panel event-calendar-panel" data-event-calendar
+           data-feed-url="{% url 'events_program:calendar_events' %}"
+           data-today="{{ calendar_today|date:'Y-m-d' }}"
+           data-view="month" aria-labelledby="event-calendar-title">
+    <div class="event-dash-panel__heading">
+      <div>
+        <p class="panel-kicker">Programme</p>
+        <h2 id="event-calendar-title">Calendrier des événements</h2>
       </div>
     </div>
+    <div class="event-calendar__toolbar">
+      <div class="event-calendar__navigation" aria-label="Navigation du calendrier">
+        <button class="btn btn-ghost btn-sm" type="button" data-calendar-prev aria-label="Période précédente">←</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-calendar-today>Aujourd’hui</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-calendar-next aria-label="Période suivante">→</button>
+      </div>
+      <h3 data-calendar-period aria-live="polite"></h3>
+      <div class="event-calendar__views" role="group" aria-label="Affichage du calendrier">
+        <button class="btn btn-ghost btn-sm" type="button" data-calendar-view-button="day" aria-pressed="false">Jour</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-calendar-view-button="week" aria-pressed="false">Semaine</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-calendar-view-button="month" aria-pressed="true">Mois</button>
+      </div>
+    </div>
+    <p class="event-calendar__status" data-calendar-status role="status" aria-live="polite">Chargement du calendrier…</p>
+    <div class="event-calendar__grid" data-calendar-grid></div>
+  </section>
 
-    <aside class="module-panel">
-      <div class="panel-heading"><div><p class="panel-kicker">Prochainement</p><h2>Événements publiés</h2></div></div>
+  <section class="event-dash-grid">
+    <div class="event-dash-panel event-dash-panel--upcoming">
+      <div class="event-dash-panel__heading">
+        <div><p class="panel-kicker">À surveiller</p><h2>Prochains événements</h2></div>
+        <a href="{% url 'events_program:entity_list' 'events' %}">Tout voir <span aria-hidden="true">→</span></a>
+      </div>
       {% if dashboard.upcoming %}
-        <ul class="event-upcoming-list">
+        <div class="event-dash-event-list">
           {% for event in dashboard.upcoming %}
-            <li>
-              <a href="{% url 'events_program:entity_detail' 'events' event.pk %}"><strong>{{ event.title }}</strong></a>
-              <span>{{ event.start_date|date:"j F Y, H:i" }} · {{ event.location }}</span>
-            </li>
+            <a class="event-dash-event" href="{% url 'events_program:entity_detail' 'events' event.pk %}">
+              <span class="event-dash-event__date"><strong>{{ event.start_date|date:"j" }}</strong><small>{{ event.start_date|date:"M" }}</small></span>
+              <span class="event-dash-event__image"><img src="{{ event.display_image_url }}" alt="" loading="lazy"></span>
+              <span class="event-dash-event__info">
+                <strong>{{ event.title }}</strong>
+                <small>{{ event.start_date|date:"l j F · H:i" }} · {{ event.venue.city|default:event.location }}</small>
+              </span>
+              <span class="event-dash-event__attendance">{{ event.confirmed_registrations }} confirmée{{ event.confirmed_registrations|pluralize }}<small>{{ event.admissions }} entrée{{ event.admissions|pluralize }}</small></span>
+            </a>
           {% endfor %}
-        </ul>
+        </div>
       {% else %}
-        <p>Aucun événement publié à venir.</p>
+        <div class="event-dash-empty">
+          <span aria-hidden="true">◇</span>
+          <h3>Aucun événement à venir</h3>
+          <p>Publiez ou planifiez un événement pour le retrouver ici.</p>
+          <a class="btn btn-primary" href="{% url 'events_program:entity_create' 'events' %}">Créer un événement</a>
+        </div>
       {% endif %}
-      {% if dashboard.categories %}
-        <h3>Événements par catégorie</h3>
-        <ul>
-          {% for row in dashboard.categories %}<li>{{ row.category }} : {{ row.total }}</li>{% endfor %}
-        </ul>
-      {% endif %}
+    </div>
+
+    <aside class="event-dash-side">
+      <section class="event-dash-panel">
+        <div class="event-dash-panel__heading">
+          <div><p class="panel-kicker">Vue d’ensemble</p><h2>Catégories</h2></div>
+        </div>
+        {% if dashboard.categories %}
+          <ul class="event-dash-categories">
+            {% for row in dashboard.categories %}
+              <li>
+                <div><span>{{ row.label }}</span><strong>{{ row.total }}</strong></div>
+                <span class="event-dash-categories__track"><span style="width: {% widthratio row.total dashboard.counts.total 100 %}%"></span></span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="event-dash-muted">Les catégories apparaîtront ici après la création d’événements.</p>
+        {% endif %}
+      </section>
+
+      <section class="event-dash-panel">
+        <div class="event-dash-panel__heading">
+          <div><p class="panel-kicker">Accès rapide</p><h2>Gérer le programme</h2></div>
+        </div>
+        <div class="event-dash-quick-links">
+          <a href="{% url 'events_program:entity_list' 'events' %}"><span aria-hidden="true">◷</span><span><strong>Événements</strong><small>Dates, statuts et tarifs</small></span><b aria-hidden="true">→</b></a>
+          <a href="{% url 'events_program:entity_list' 'activities' %}"><span aria-hidden="true">▦</span><span><strong>Activités</strong><small>Construire le programme</small></span><b aria-hidden="true">→</b></a>
+          <a href="{% url 'events_program:entity_list' 'speakers' %}"><span aria-hidden="true">◎</span><span><strong>Intervenants</strong><small>Gérer les profils</small></span><b aria-hidden="true">→</b></a>
+          <a href="{% url 'events_program:entity_list' 'activity-speakers' %}"><span aria-hidden="true">↔</span><span><strong>Affectations</strong><small>Relier activités et intervenants</small></span><b aria-hidden="true">→</b></a>
+        </div>
+      </section>
     </aside>
   </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="{% static 'events_program/js/event-dashboard-map.js' %}?v=1" defer></script>
+  <script src="{% static 'events_program/js/event-calendar.js' %}?v=1" defer></script>
 {% endblock %}

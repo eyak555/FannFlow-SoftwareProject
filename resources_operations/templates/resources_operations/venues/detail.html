@@ -1,0 +1,22 @@
+{% extends "core/layouts/detail.html" %}
+
+{% block detail_fields %}
+  <dt>Nom</dt><dd>{{ object.name }}</dd>
+  <dt>Type</dt><dd>{{ object.get_venue_type_display }}</dd>
+  <dt>Adresse</dt><dd>{{ object.address }}</dd>
+  <dt>Ville</dt><dd>{{ object.city }}</dd>
+  <dt>Latitude</dt><dd>{{ object.latitude|default:"Non renseignée" }}</dd>
+  <dt>Longitude</dt><dd>{{ object.longitude|default:"Non renseignée" }}</dd>
+  <dt>Capacité</dt><dd>{{ object.capacity|default:"Non renseignée" }}</dd>
+  <dt>Surface</dt><dd>{% if object.surface is not None %}{{ object.surface }} m²{% else %}Non renseignée{% endif %}</dd>
+  <dt>Capacité du parking</dt><dd>{{ object.parking_capacity|default:"Non renseignée" }}</dd>
+  <dt>Accessibilité</dt><dd>{{ object.accessibility|linebreaksbr|default:"Non renseignée" }}</dd>
+  <dt>Événements associés</dt>
+  <dd>
+    {% for event in object.events.all %}
+      <p><a href="{% url 'events_program:entity_detail' 'events' event.pk %}">{{ event.title }}</a></p>
+    {% empty %}
+      Aucun événement associé.
+    {% endfor %}
+  </dd>
+{% endblock %}

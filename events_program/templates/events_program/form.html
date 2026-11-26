@@ -1,10 +1,17 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+  {% if entity_slug == "events" %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  {% endif %}
+{% endblock %}
 
 {% block content %}
   <header class="page-header">
     <div><h1>{{ page_title }}</h1><p class="lede">Les champs obligatoires doivent être renseignés avant l’enregistrement.</p></div>
   </header>
-  <form class="ff-form" method="post" novalidate{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
+  <form class="ff-form{% if entity_slug == "events" %} ff-form--event{% endif %}" method="post" novalidate{% if form.is_multipart %} enctype="multipart/form-data"{% endif %}>
     {% csrf_token %}
     {{ form.non_field_errors }}
     {% if entity_slug == "events" and object.image %}
@@ -14,16 +21,58 @@
       </div>
     {% endif %}
     {% for field in form %}
-      <div class="field{% if field.errors %} field--error{% endif %}">
-        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<p class="hint">{{ field.help_text }}</p>{% endif %}
-        {{ field.errors }}
-      </div>
+      {% if field.is_hidden %}
+      {% elif field.name == "new_venue_address" or field.name == "new_venue_city" %}
+      {% else %}
+        <div class="field{% if field.errors %} field--error{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="hint">{{ field.help_text }}</p>{% endif %}
+          {{ field.errors }}
+        </div>
+        {% if entity_slug == "events" and field.name == "venue" %}
+          <section class="event-location-picker" data-venue-map data-tiles-url="{{ osm_tile_url }}" data-geocode-url="{{ geocode_url }}" aria-label="Sélectionner le lieu sur la carte">
+            <div class="event-location-picker__heading">
+              <div><p class="panel-kicker">Emplacement</p><h2>Choisir sur la carte</h2></div>
+              <button class="btn btn-secondary btn-sm" type="button" data-map-clear>Effacer la position</button>
+            </div>
+            <p class="hint">La carte est centrée sur la Tunisie. La recherche d’adresse est manuelle, sans autocomplétion. N’y saisissez pas de données personnelles.</p>
+            <div class="event-location-picker__search">
+              <label for="venue-address-search">Rechercher une ville ou une adresse</label>
+              <div><input class="ff-input" id="venue-address-search" type="search" maxlength="200" autocomplete="off" data-geocode-query><button class="btn btn-primary" type="button" data-geocode-search>Rechercher</button></div>
+            </div>
+            <ul class="event-location-picker__results" data-geocode-results hidden></ul>
+            <div class="event-location-picker__map" id="event-location-map" role="application" aria-label="Carte interactive de la Tunisie"></div>
+            <p class="event-location-picker__status" data-map-status role="status" aria-live="polite">Choisissez un lieu enregistré ou recherchez une adresse. Vous pouvez aussi cliquer sur la carte.</p>
+            <div class="event-location-picker__new-venue">
+              {% for map_field in form %}
+                {% if map_field.name == "new_venue_address" or map_field.name == "new_venue_city" %}
+                  <div class="field{% if map_field.errors %} field--error{% endif %}">
+                    <label for="{{ map_field.id_for_label }}">{{ map_field.label }}</label>
+                    {{ map_field }}
+                    {{ map_field.errors }}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+            {{ form.selected_latitude }}
+            {{ form.selected_longitude }}
+            {{ form.location_token }}
+            {{ form.selected_latitude.errors }}
+          </section>
+        {% endif %}
+      {% endif %}
     {% endfor %}
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">Enregistrer</button>
       <a class="btn btn-secondary" href="{% url 'events_program:entity_list' entity_slug %}">Annuler</a>
     </div>
   </form>
+{% endblock %}
+
+{% block extra_js %}
+  {% if entity_slug == "events" %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="{% static 'events_program/js/venue-map.js' %}?v=1" defer></script>
+  {% endif %}
 {% endblock %}

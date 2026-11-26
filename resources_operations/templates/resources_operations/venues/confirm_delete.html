@@ -1,0 +1,19 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+  <header class="page-header">
+    <div><h1>{{ page_title }}</h1><p class="lede">Confirmez la suppression du lieu « {{ object.name }} ».</p></div>
+  </header>
+  {% if delete_blocker %}
+    <p class="notice" role="alert">Ce lieu est associé à un ou plusieurs événements. Retirez d’abord ces associations avant de pouvoir le supprimer.</p>
+  {% else %}
+    <form class="ff-form" method="post">
+      {% csrf_token %}
+      <p>Cette action est définitive.</p>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">Supprimer le lieu</button>
+        <a class="btn btn-secondary" href="{% url 'resources_operations:entity_detail' 'venues' object.pk %}">Annuler</a>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

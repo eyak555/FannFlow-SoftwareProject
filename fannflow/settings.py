@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -127,6 +128,20 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+OSM_TILE_URL = os.environ.get(
+    "FANNFLOW_OSM_TILE_URL",
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+)
+NOMINATIM_API_URL = os.environ.get(
+    "FANNFLOW_NOMINATIM_API_URL",
+    "https://nominatim.openstreetmap.org",
+)
+NOMINATIM_USER_AGENT = os.environ.get(
+    "FANNFLOW_NOMINATIM_USER_AGENT",
+    "FannFlow/1.0 (event location search)",
+)
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 
 # Fichiers envoyés par les utilisateurs (photos de profil).

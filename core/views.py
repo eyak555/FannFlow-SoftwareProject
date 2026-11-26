@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -220,9 +221,20 @@ def events(request):
 
 def event_detail(request, pk):
     event = get_object_or_404(
-        Event.objects.prefetch_related("activities__speakers"),
+        Event.objects.select_related("venue").prefetch_related("activities__speakers"),
         pk=pk,
         status=Event.Status.PUBLISHED,
+    )
+    event_map = (
+        {
+            "latitude": str(event.venue.latitude),
+            "longitude": str(event.venue.longitude),
+            "title": event.venue.name,
+        }
+        if event.venue
+        and event.venue.latitude is not None
+        and event.venue.longitude is not None
+        else None
     )
     return render(
         request,
@@ -231,6 +243,8 @@ def event_detail(request, pk):
             "event": event,
             "event_image": event.display_image_url,
             "event_access_error": event.age_access_error(request.user),
+            "event_map": event_map,
+            "osm_tile_url": settings.OSM_TILE_URL,
             "page_title": event.title,
         },
     )

@@ -11,6 +11,8 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.templatetags.static import static
 
+from resources_operations.models import Venue
+
 EVENT_IMAGE_MAX_SIZE = 5 * 1024 * 1024
 EVENT_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"]
 
@@ -95,6 +97,14 @@ class Event(models.Model):
         help_text="Laisser vide si aucun âge maximum ne s’applique.",
     )
     location = models.CharField("lieu", max_length=255)
+    venue = models.ForeignKey(
+        Venue,
+        verbose_name="lieu enregistré",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="events",
+    )
     image = models.ImageField(
         "image de l’événement",
         upload_to=event_image_upload_to,

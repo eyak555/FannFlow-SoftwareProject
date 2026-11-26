@@ -1,10 +1,14 @@
-from io import BytesIO
+import json
 import os
 import tempfile
 from datetime import timedelta
 from decimal import Decimal
+from io import BytesIO
+from unittest.mock import MagicMock, patch
+from urllib.error import URLError
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -12,7 +16,8 @@ from django.utils import timezone
 from PIL import Image
 
 from registration_access.forms import ParticipantRegistrationForm
-from registration_access.models import Registration
+from registration_access.models import AccessPoint, Attendance, Registration, Ticket
+from resources_operations.models import Venue
 from .forms import ActivityForm, EventForm
 from .models import Activity, Event, Speaker
 
@@ -134,6 +139,164 @@ class EventProgramTests(TestCase):
         self.assertEqual(event.director, self.organizer)
         self.assertEqual(event.ticket_price, Decimal("5.00"))
         self.assertEqual(event.vip_ticket_price, Decimal("15.00"))
+
+    def test_event_can_reference_a_venue_from_resources_module(self):
+        venue = Venue.objects.create(
+            name="Théâtre municipal",
+            address="Place du Théâtre",
+            city="Sousse",
+            latitude=Decimal("35.8256"),
+            longitude=Decimal("10.6369"),
+        )
+        response = self.client.post(
+            reverse("events_program:entity_create", args=["events"]),
+            {**self.event_form_payload("Concert à Sousse"), "venue": venue.pk},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        event = Event.objects.get(title="Concert à Sousse")
+        self.assertEqual(event.venue, venue)
+        detail = self.client.get(event.get_absolute_url())
+        self.assertContains(detail, venue.name)
+        self.assertContains(detail, venue.city)
+        self.assertContains(detail, "data-event-location-map")
+        self.assertContains(
+            self.client.get(event.get_absolute_url()),
+            "data-event-location-map",
+        )
+
+    def test_geocode_search_returns_only_tunisian_results_and_caches_response(self):
+        cache.clear()
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.read.return_value = json.dumps(
+            [
+                {
+                    "lat": "36.8000",
+                    "lon": "10.1800",
+                    "name": "Tunis",
+                    "display_name": "Tunis, Tunisie",
+                    "address": {
+                        "country_code": "tn",
+                        "city": "Tunis",
+                        "road": "Avenue Habib Bourguiba",
+                    },
+                },
+                {
+                    "lat": "48.8566",
+                    "lon": "2.3522",
+                    "display_name": "Paris, France",
+                    "address": {"country_code": "fr"},
+                },
+            ]
+        ).encode("utf-8")
+        with patch("events_program.views.urlopen", return_value=response) as urlopen:
+            response_data = self.client.get(
+                reverse("events_program:geocode"),
+                {"q": "Tunis"},
+            ).json()
+            cached_data = self.client.get(
+                reverse("events_program:geocode"),
+                {"q": "Tunis"},
+            ).json()
+
+        self.assertEqual(len(response_data["results"]), 1)
+        self.assertEqual(response_data, cached_data)
+        self.assertTrue(response_data["results"][0]["token"])
+        self.assertIn("countrycodes=tn", urlopen.call_args.args[0].full_url)
+        urlopen.assert_called_once()
+
+    def test_geocode_throttles_uncached_queries_and_rejects_out_of_bounds_points(self):
+        cache.clear()
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.read.return_value = b"[]"
+        with patch("events_program.views.urlopen", return_value=response) as urlopen:
+            first = self.client.get(
+                reverse("events_program:geocode"),
+                {"q": "Tunis"},
+            )
+            throttled = self.client.get(
+                reverse("events_program:geocode"),
+                {"q": "Sousse"},
+            )
+            outside_tunisia = self.client.get(
+                reverse("events_program:geocode"),
+                {"reverse": "1", "lat": "48.8566", "lon": "2.3522"},
+            )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(throttled.status_code, 429)
+        self.assertEqual(throttled["Retry-After"], "1")
+        self.assertEqual(outside_tunisia.status_code, 400)
+        self.assertEqual(urlopen.call_count, 1)
+
+    def test_geocode_reports_service_network_errors(self):
+        cache.clear()
+        with patch(
+            "events_program.views.urlopen",
+            side_effect=URLError("service unavailable"),
+        ):
+            response = self.client.get(
+                reverse("events_program:geocode"),
+                {"q": "Tunis"},
+            )
+
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("Impossible de joindre", response.json()["error"])
+
+    def test_verified_map_location_creates_venue_and_invalid_token_is_rejected(self):
+        cache.clear()
+        reverse_result = {
+            "lat": "36.800000",
+            "lon": "10.180000",
+            "name": "Tunis",
+            "display_name": "Avenue Habib Bourguiba, Tunis, Tunisie",
+            "address": {
+                "country_code": "tn",
+                "city": "Tunis",
+                "road": "Avenue Habib Bourguiba",
+            },
+        }
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.read.return_value = json.dumps(reverse_result).encode("utf-8")
+        with patch("events_program.views.urlopen", return_value=response):
+            verified_location = self.client.get(
+                reverse("events_program:geocode"),
+                {"reverse": "1", "lat": "36.8", "lon": "10.18"},
+            ).json()
+
+        response = self.client.post(
+            reverse("events_program:entity_create", args=["events"]),
+            {
+                **self.event_form_payload("Événement cartographié"),
+                "location": verified_location["name"],
+                "selected_latitude": verified_location["latitude"],
+                "selected_longitude": verified_location["longitude"],
+                "location_token": verified_location["token"],
+                "new_venue_address": verified_location["address"],
+                "new_venue_city": verified_location["city"],
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        event = Event.objects.get(title="Événement cartographié")
+        self.assertEqual(event.venue.city, "Tunis")
+        self.assertEqual(event.venue.latitude, Decimal("36.800000"))
+
+        response = self.client.post(
+            reverse("events_program:entity_create", args=["events"]),
+            {
+                **self.event_form_payload("Événement non vérifié"),
+                "selected_latitude": "36.800000",
+                "selected_longitude": "10.180000",
+                "location_token": "invalid-token",
+                "new_venue_address": "Adresse",
+                "new_venue_city": "Tunis",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Event.objects.filter(title="Événement non vérifié").exists())
 
     def test_event_image_upload_default_fallback_and_public_card(self):
         create_url = reverse("events_program:entity_create", args=["events"])
@@ -305,7 +468,12 @@ class EventProgramTests(TestCase):
             registration_deadline=self.now - timedelta(days=3),
         )
         self.make_event(title="Brouillon", status=Event.Status.DRAFT)
-        self.client.get(reverse("events_program:home"))
+        response = self.client.get(reverse("events_program:home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Prochains événements")
+        self.assertContains(response, "Catégories")
+        self.assertContains(response, "Calendrier des événements")
+        self.assertContains(response, 'data-calendar-view-button="day"')
         from .views import event_dashboard
 
         counts = event_dashboard()["counts"]
@@ -314,6 +482,188 @@ class EventProgramTests(TestCase):
         self.assertEqual(counts["ongoing"], 1)
         self.assertEqual(counts["completed"], 1)
         self.assertEqual(counts["draft"], 1)
+        self.assertContains(response, "Festival de musique")
+
+    def test_dashboard_filter_state_is_valid_initially_and_reports_invalid_dates(self):
+        self.make_event()
+
+        initial = self.client.get(reverse("events_program:home"))
+        self.assertTrue(initial.context["dashboard"]["filters_valid"])
+        self.assertNotContains(initial, "Les filtres n’ont pas été appliqués")
+
+        invalid = self.client.get(
+            reverse("events_program:home"),
+            {"start_date": "2026-12-10", "end_date": "2026-12-01"},
+        )
+        self.assertFalse(invalid.context["dashboard"]["filters_valid"])
+        self.assertContains(invalid, "Les filtres n’ont pas été appliqués")
+        self.assertEqual(invalid.context["dashboard"]["counts"]["total"], 1)
+
+    def test_dashboard_filters_by_category_and_limits_results_to_assigned_events(self):
+        self.make_event(title="Événement de mon équipe")
+        self.make_event(
+            title="Atelier de mon équipe",
+            category=Event.Category.WORKSHOP,
+        )
+        another_organizer = get_user_model().objects.create_user(
+            email="another-organizer@example.test",
+            first_name="Autre",
+            last_name="Organisateur",
+            password="test-password",
+            business_role=get_user_model().BusinessRole.ORGANIZER,
+        )
+        self.make_event(
+            title="Événement d’une autre équipe",
+            director=another_organizer,
+        )
+
+        response = self.client.get(
+            reverse("events_program:home"),
+            {"category": Event.Category.MUSIC},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["dashboard"]["counts"]["total"], 1)
+        self.assertContains(response, "Événement de mon équipe")
+        self.assertNotContains(response, "Événement d’une autre équipe")
+        self.assertNotContains(response, "Atelier de mon équipe")
+        self.assertContains(response, "Événements par mois de début")
+
+    def test_calendar_feed_returns_filtered_events_with_local_schedule_and_place(self):
+        venue = Venue.objects.create(
+            name="Maison de la culture",
+            address="Avenue Habib Bourguiba",
+            city="Tunis",
+        )
+        event = self.make_event(
+            title="Concert au centre-ville",
+            venue=venue,
+        )
+        self.make_event(
+            title="Atelier non sélectionné",
+            category=Event.Category.WORKSHOP,
+        )
+        another_organizer = get_user_model().objects.create_user(
+            email="calendar-other@example.test",
+            first_name="Autre",
+            last_name="Organisateur",
+            password="test-password",
+            business_role=get_user_model().BusinessRole.ORGANIZER,
+        )
+        self.make_event(
+            title="Événement privé",
+            director=another_organizer,
+        )
+
+        start = timezone.localdate(self.now + timedelta(days=4))
+        end = start + timedelta(days=7)
+        response = self.client.get(
+            reverse("events_program:calendar_events"),
+            {
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "category": Event.Category.MUSIC,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        events = response.json()["events"]
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["title"], "Concert au centre-ville")
+        self.assertEqual(events[0]["place"], "Maison de la culture · Tunis")
+        self.assertEqual(
+            events[0]["start_day"],
+            timezone.localtime(event.start_date).date().isoformat(),
+        )
+        self.assertEqual(
+            events[0]["start_time"],
+            timezone.localtime(event.start_date).strftime("%H:%M"),
+        )
+        self.assertEqual(events[0]["status"], "upcoming")
+        self.assertEqual(
+            events[0]["url"],
+            reverse("events_program:entity_detail", args=["events", event.pk]),
+        )
+
+    def test_calendar_feed_rejects_invalid_and_oversized_date_ranges(self):
+        url = reverse("events_program:calendar_events")
+        invalid = self.client.get(
+            url,
+            {"start": "not-a-date", "end": "2026-12-01"},
+        )
+        oversized = self.client.get(
+            url,
+            {"start": "2026-11-01", "end": "2027-01-01"},
+        )
+
+        self.assertEqual(invalid.status_code, 400)
+        self.assertEqual(oversized.status_code, 400)
+
+    def test_dashboard_map_only_contains_upcoming_geolocated_published_events(self):
+        venue = Venue.objects.create(
+            name="Salle de Tunis",
+            address="Avenue Habib Bourguiba",
+            city="Tunis",
+            latitude=Decimal("36.800000"),
+            longitude=Decimal("10.180000"),
+        )
+        self.make_event(
+            title="Concert cartographié",
+            venue=venue,
+        )
+        self.make_event(
+            title="Événement sans coordonnées",
+            location="Sousse",
+        )
+        self.make_event(
+            title="Brouillon géolocalisé",
+            venue=venue,
+            status=Event.Status.DRAFT,
+        )
+
+        response = self.client.get(reverse("events_program:home"))
+        map_events = response.context["dashboard"]["map_events"]
+
+        self.assertEqual(len(map_events), 1)
+        self.assertEqual(map_events[0]["title"], "Concert cartographié")
+        self.assertEqual(map_events[0]["place"], "Tunis")
+        self.assertContains(response, "Carte des événements à venir")
+        self.assertContains(response, "event-dashboard-map.js")
+
+    def test_dashboard_uses_confirmed_registrations_and_real_attendance(self):
+        event = self.make_event(capacity=1)
+        registration = Registration.objects.create(
+            user=self.participant,
+            event_id=event.pk,
+            ticket_type=Registration.TICKET_TYPE_STANDARD,
+            status=Registration.STATUS_CONFIRMED,
+            payment_status=Registration.PAYMENT_NOT_REQUIRED,
+        )
+        ticket = Ticket.objects.create(
+            registration=registration,
+            price=event.ticket_price,
+            category=Ticket.CATEGORY_STANDARD,
+            status=Ticket.STATUS_AVAILABLE,
+        )
+        access_point = AccessPoint.objects.create(
+            event_id=event.pk,
+            name="Entrée principale",
+            location="Porte A",
+            capacity=100,
+        )
+        Attendance.objects.create(
+            ticket=ticket,
+            access_point=access_point,
+            check_in=self.now,
+        )
+
+        response = self.client.get(reverse("events_program:home"))
+        counts = response.context["dashboard"]["counts"]
+
+        self.assertEqual(counts["confirmed_registrations"], 1)
+        self.assertEqual(counts["admissions"], 1)
+        self.assertEqual(counts["fill_rate"], 100)
+        self.assertContains(response, "1 entrée")
 
     def test_registration_ticket_uses_event_price(self):
         event = self.make_event()

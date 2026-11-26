@@ -38,11 +38,13 @@ python manage.py runserver
 
 ## Événements et programme
 
-- Le tableau de bord Événements affiche le total, les événements à venir, en cours et terminés, ainsi que les activités, inscriptions et répartitions par catégorie.
+- Le tableau de bord Événements est filtrable par catégorie, statut, ville/lieu et dates. Il présente des graphiques calculés à partir des événements et inscriptions confirmées, les entrées réellement enregistrées, le taux de remplissage, une carte des événements publiés à venir et un calendrier interactif par jour, semaine ou mois avec horaires et lieux. Les organisateurs/directeurs voient leurs événements affectés ; les administrateurs voient l’ensemble.
 - Les événements ont un statut de publication (brouillon, publié ou annulé) et un état de cycle de vie calculé à partir de leurs dates. Seuls les événements publiés sont visibles dans le catalogue public.
 - Les événements ne peuvent pas être supprimés tant que des inscriptions ou points d’accès les référencent ; ils peuvent être annulés ou dépubliés à la place.
 - Les activités sont datées à l’intérieur de leur événement et peuvent être liées à plusieurs intervenants.
 - Les événements utilisent des illustrations SVG locales par catégorie et peuvent recevoir une image JPG, PNG ou WEBP (5 Mo maximum). Les images importées sont stockées sous `MEDIA_ROOT/events/<categorie>/` et supprimées avec l’événement ou après leur remplacement.
+- Le formulaire d’événement permet de choisir un lieu enregistré ou de rechercher/sélectionner un emplacement tunisien sur une carte OpenStreetMap. Les coordonnées vérifiées créent un lieu associé à l’événement ; si Leaflet ou le géocodage est indisponible, la saisie textuelle reste possible. L’attribution OpenStreetMap reste visible.
+- La recherche de lieux passe par le proxy Django, sans autocomplétion, avec cache et limitation des requêtes. En production, configurez `FANNFLOW_NOMINATIM_USER_AGENT` avec un identifiant et un contact de l’application, ainsi qu’un cache partagé pour appliquer la limite de requêtes entre plusieurs workers. Les URL peuvent être configurées avec `FANNFLOW_NOMINATIM_API_URL` et `FANNFLOW_OSM_TILE_URL`.
 - Le catalogue public utilise une pagination Django de neuf événements par page. Recherche, catégorie, lieu, période, état et tri sont appliqués en base et conservés lors de la navigation.
 - L’organisateur peut définir l’âge minimum et/ou maximum accepté. La condition est affichée sur la fiche publique et contrôlée à l’inscription d’après la date de naissance du profil ; pour vérifier une restriction d’âge, la date de naissance est obligatoire. Le billet VIP a son propre prix.
 

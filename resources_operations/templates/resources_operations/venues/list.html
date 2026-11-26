@@ -1,0 +1,53 @@
+{% extends "core/layouts/list.html" %}
+
+{% block filters %}
+  <form class="registration-filters" method="get">
+    <label class="registration-search">
+      <span class="visually-hidden">Rechercher un lieu</span>
+      <input type="search" name="q" value="{{ search }}" placeholder="Nom, adresse ou ville">
+    </label>
+    <button class="btn btn-secondary" type="submit">Rechercher</button>
+    {% if search %}<a class="registration-reset" href="{% url 'resources_operations:entity_list' 'venues' %}">Effacer</a>{% endif %}
+  </form>
+{% endblock %}
+
+{% block table_head %}
+  <tr>
+    <th scope="col">Lieu</th>
+    <th scope="col">Ville</th>
+    <th scope="col">Type</th>
+    <th scope="col">Coordonnées</th>
+    <th scope="col">Capacité</th>
+    <th scope="col">Actions</th>
+  </tr>
+{% endblock %}
+
+{% block table_body %}
+  {% for venue in objects %}
+    <tr>
+      <td><strong>{{ venue.name }}</strong><br><small>{{ venue.address }}</small></td>
+      <td>{{ venue.city }}</td>
+      <td>{{ venue.get_venue_type_display }}</td>
+      <td>{% if venue.latitude is not None %}{{ venue.latitude }}, {{ venue.longitude }}{% else %}Non renseignées{% endif %}</td>
+      <td>{{ venue.capacity|default:"—" }}</td>
+      <td>
+        <div class="table-actions">
+          <a class="table-action table-action--view" href="{% url 'resources_operations:entity_detail' 'venues' venue.pk %}">Détails</a>
+          <a class="table-action table-action--edit" href="{% url 'resources_operations:entity_update' 'venues' venue.pk %}">Modifier</a>
+        </div>
+      </td>
+    </tr>
+  {% empty %}
+    <tr>
+      <td class="empty-cell" colspan="6">
+        {% include "core/components/empty_state.html" with title="Aucun lieu enregistré" text="Ajoutez un lieu manuellement. Les coordonnées restent facultatives." %}
+      </td>
+    </tr>
+  {% endfor %}
+{% endblock %}
+
+{% block after_table %}
+  {% if page_obj.paginator.num_pages > 1 %}
+    {% include "core/components/pagination.html" %}
+  {% endif %}
+{% endblock %}

@@ -1,4 +1,9 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+  {% if event_map %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endif %}
+{% endblock %}
 
 {% block content %}
   <header class="page-header">
@@ -13,7 +18,7 @@
       <dt>Description</dt><dd>{{ object.description|linebreaksbr }}</dd>
       <dt>Type</dt><dd>{{ object.get_event_type_display }}</dd>
       <dt>Catégorie</dt><dd>{{ object.category_display }}</dd>
-      <dt>Lieu</dt><dd>{{ object.location }}</dd>
+      <dt>Lieu</dt><dd>{{ object.location }}{% if object.venue %}<br>{{ object.venue.name }}, {{ object.venue.address }}, {{ object.venue.city }}{% endif %}</dd>
       <dt>Début</dt><dd>{{ object.start_date|date:"j F Y, H:i" }}</dd>
       <dt>Fin</dt><dd>{{ object.end_date|date:"j F Y, H:i" }}</dd>
       <dt>Date limite d’inscription</dt><dd>{{ object.registration_deadline|date:"j F Y, H:i" }}</dd>
@@ -24,6 +29,15 @@
       <dt>Responsable</dt><dd>{{ object.director|default:"Non attribué" }}</dd>
       <dt>État</dt><dd>{{ object.lifecycle_status_label }} ({{ object.get_status_display }})</dd>
       <dt>Inscriptions</dt><dd>{{ registration_count }}</dd>
+      {% if event_map %}
+        <dt>Carte du lieu</dt>
+        <dd>
+          <div class="event-location-map" data-event-location-map data-latitude="{{ event_map.latitude }}" data-longitude="{{ event_map.longitude }}" data-location-name="{{ event_map.title }}" data-tiles-url="{{ osm_tile_url }}">
+            <div class="event-location-map__canvas" data-map-canvas role="application" aria-label="Carte du lieu {{ event_map.title }}"></div>
+            <p class="event-location-map__status" data-map-status role="status" aria-live="polite">Chargement de la carte…</p>
+          </div>
+        </dd>
+      {% endif %}
       <dt>Activités</dt>
       <dd>
         {% for activity in object.activities.all %}
@@ -52,4 +66,11 @@
       <dt>Intervenant</dt><dd>{{ object.speaker.name }}</dd>
     {% endif %}
   </dl>
+{% endblock %}
+
+{% block extra_js %}
+  {% if event_map %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <script src="{% static 'events_program/js/event-detail-map.js' %}?v=1" defer></script>
+  {% endif %}
 {% endblock %}
