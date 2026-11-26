@@ -9,6 +9,9 @@
 {% endblock %}
 
 {% block form_fields %}
+  {% if entity.slug == "resource-allocations" %}
+    <p><a href="{% url 'resources_operations:event_requirements' %}">Gérer les fiches événementielles</a></p>
+  {% endif %}
   <div class="operations-form-fields">{{ block.super }}</div>
 {% endblock %}
 

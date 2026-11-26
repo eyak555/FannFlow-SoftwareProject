@@ -1,3 +1,6 @@
+from .permissions import can_administer_operations, is_operations_director
+
+
 MODULE = {
     "code": "M4",
     "title": "Resources & Operations",
@@ -23,8 +26,9 @@ MODULE = {
             "description": "Quantités en stock, coûts unitaires et emplacements.",
             "create_label": "Ajouter une ressource",
             "search_label": "Nom, type ou emplacement",
-            "filter_label": "Stock",
-            "filters": [("in-stock", "En stock"), ("out-of-stock", "Stock épuisé")],
+            "filter_label": "Stock ou état",
+            "filters": [("in-stock", "En stock"), ("out-of-stock", "Stock épuisé"),
+                        ("maintenance", "En maintenance"), ("unavailable", "Hors service")],
             "fields": ["Id_resource", "Name", "Type", "Quantity", "Unit_cost", "Location"],
         },
         {
@@ -33,7 +37,7 @@ MODULE = {
             "plural": "Allocations",
             "description": "Réservations par événement, quantité et période.",
             "create_label": "Créer une allocation",
-            "search_label": "Ressource ou numéro d’événement",
+            "search_label": "Ressource, nom ou numéro d’événement",
             "filter_label": "Période",
             "filters": [("upcoming", "À venir"), ("active", "En cours"), ("ended", "Terminée")],
             "fields": ["Id_allocation", "Id_resource", "Id_event", "Quantity", "Start_time", "End_time"],
@@ -43,14 +47,8 @@ MODULE = {
 
 
 def get_accessible_sections(user):
-    if not user.is_authenticated:
-        return []
-    if user.is_superuser or getattr(user, "is_administrator", False):
+    if can_administer_operations(user):
         return MODULE["entities"]
-
-    groups = set(user.groups.filter(name__in=("Administrateur", "Directeur")).values_list("name", flat=True))
-    if "Administrateur" in groups:
-        return MODULE["entities"]
-    if getattr(user, "business_role", "") == "directeur" or "Directeur" in groups:
+    if is_operations_director(user):
         return [entity for entity in MODULE["entities"] if entity["slug"] != "resources"]
     return []

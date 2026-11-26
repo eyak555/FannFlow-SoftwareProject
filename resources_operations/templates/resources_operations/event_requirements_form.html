@@ -1,0 +1,20 @@
+{% extends "core/layouts/form.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "resources_operations/components/navigation.html" %}
+  {{ block.super }}
+{% endblock %}
+
+{% block form_fields %}
+  <h2>{{ event.title }}</h2>
+  <p>Capacité annoncée dans le programme · {{ event.capacity }}</p>
+  <div class="operations-form-fields">{{ block.super }}</div>
+{% endblock %}
+
+{% block form_actions %}
+  {{ block.super }}
+  <a class="btn btn-secondary" href="{% url 'resources_operations:event_requirements' %}">Retour aux événements</a>
+{% endblock %}

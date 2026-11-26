@@ -14,10 +14,14 @@ def peak_quantity(allocations, start, end=None):
     if end is not None:
         allocations = allocations.filter(start_time__lt=end)
 
+    return reservation_peak(allocations.order_by().values_list("start_time", "end_time", "quantity"), start, end)
+
+
+def reservation_peak(reservations, start, end=None):
     deltas = defaultdict(int)
-    for allocation_start, allocation_end, quantity in allocations.values_list(
-        "start_time", "end_time", "quantity"
-    ).order_by():
+    for allocation_start, allocation_end, quantity in reservations:
+        if allocation_end <= start or (end is not None and allocation_start >= end):
+            continue
         deltas[max(start, allocation_start)] += quantity
         deltas[min(end, allocation_end) if end is not None else allocation_end] -= quantity
 
@@ -30,26 +34,27 @@ def inventory_for_update(resource_id):
     resources = Resource.objects.filter(pk=resource_id)
     if not resources.update(quantity=F("quantity")):
         return None
-    return resources.values_list("quantity", flat=True).get()
+    return resources.get()
 
 
 def check_resource_stock(resource):
     if resource._state.adding:
         return
-    previous_quantity = inventory_for_update(resource.pk)
-    if previous_quantity is None:
+    previous = inventory_for_update(resource.pk)
+    if previous is None:
         raise ValidationError("Cette ressource a été supprimée. Revenez à la liste.")
-    if resource.quantity < previous_quantity:
+    if resource.bookable_quantity < previous.bookable_quantity:
         reserved = peak_quantity(resource.allocations.all(), timezone.now())
-        if resource.quantity < reserved:
+        if resource.bookable_quantity < reserved:
+            field = "quantity" if resource.status == Resource.Status.AVAILABLE else "status"
             raise ValidationError({
-                "quantity": f"Les allocations en cours ou à venir nécessitent au moins {reserved} unité(s).",
+                field: f"Les allocations en cours ou à venir nécessitent au moins {reserved} unité(s).",
             })
 
 
 def check_allocation_stock(allocation):
-    stock = inventory_for_update(allocation.resource_id)
-    if stock is None:
+    resource = inventory_for_update(allocation.resource_id)
+    if resource is None:
         raise ValidationError({"resource": "Cette ressource n’est plus disponible."})
 
     allocation_rows = ResourceAllocation.objects
@@ -59,10 +64,12 @@ def check_allocation_stock(allocation):
     start = max(allocation.start_time, timezone.now())
     if allocation.end_time <= start:
         return
+    if resource.status != Resource.Status.AVAILABLE:
+        raise ValidationError({"resource": "Cette ressource est indisponible pour la période demandée."})
 
     other_allocations = allocation_rows.filter(resource_id=allocation.resource_id).exclude(pk=allocation.pk)
     reserved = peak_quantity(other_allocations, start, allocation.end_time)
-    available = stock - reserved
+    available = resource.bookable_quantity - reserved
     if allocation.quantity > available:
         raise ValidationError({
             "quantity": f"Il reste {max(0, available)} unité(s) disponible(s) sur toute la période demandée.",

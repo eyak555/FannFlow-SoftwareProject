@@ -56,7 +56,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     # Back-office réservé à l'équipe (admin, directeur, organisateur).
-    'core.access.BackOfficeAccessMiddleware',
+    'resources_operations.navigation.BackOfficeAccessMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -72,7 +72,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'core.context_processors.navigation',
+                'resources_operations.navigation.navigation',
             ],
         },
     },

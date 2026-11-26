@@ -9,6 +9,11 @@
 {% endblock %}
 
 {% block page_actions %}
+  {% if entity.slug == "resource-allocations" %}
+    <a class="btn btn-secondary" href="{% url 'resources_operations:allocation_planning' %}">Optimiser une allocation</a>
+  {% elif entity.slug == "resources" %}
+    <a class="btn btn-secondary" href="{% url 'resources_operations:inventory' %}">Inventaire et prévisions</a>
+  {% endif %}
   <a class="btn btn-primary" href="{% url 'resources_operations:entity_create' entity.slug %}">{{ entity.create_label }}</a>
 {% endblock %}
 
@@ -68,7 +73,10 @@
           {% if entity.slug == "resource-allocations" %}{{ object.resource.name }}{% else %}{{ object.name }}{% endif %}
         </a>
         <span class="operations-table-caption">
-          {% if entity.slug == "resource-allocations" %}Événement n° {{ object.event_id }}{% else %}{{ object.type }}{% endif %}
+          {% if entity.slug == "resource-allocations" %}
+            {% if object.program_event %}{{ object.program_event.title }}{% else %}Référence historique{% endif %} · #{{ object.event_id }}
+          {% elif entity.slug == "resources" %}{{ object.type }} · {{ object.get_status_display }}
+          {% else %}{{ object.type }}{% endif %}
         </span>
       </th>
       {% if entity.slug == "venues" %}
@@ -89,7 +97,10 @@
         </td>
         <td class="data">{{ object.unit_cost|floatformat:2 }}</td>
       {% else %}
-        <td class="data">{{ object.quantity }}</td>
+        <td class="data">
+          {{ object.quantity }} allouée(s)
+          {% if object.used_quantity is not None %}<span class="operations-table-caption">{{ object.used_quantity }} utilisée(s)</span>{% endif %}
+        </td>
         <td class="operations-period">
           <time datetime="{{ object.start_time|date:'c' }}">{{ object.start_time|date:"d/m/Y H:i" }}</time>
           <span>au <time datetime="{{ object.end_time|date:'c' }}">{{ object.end_time|date:"d/m/Y H:i" }}</time></span>

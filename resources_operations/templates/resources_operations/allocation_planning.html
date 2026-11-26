@@ -1,0 +1,49 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "resources_operations/components/navigation.html" %}
+  <header class="page-header"><h1>{{ page_title }}</h1></header>
+  <form class="ff-form" method="get">
+    <div class="operations-form-fields">{{ form.as_div }}</div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Chercher un créneau</button>
+      <a class="btn btn-secondary" href="{% url 'resources_operations:event_requirements' %}">Besoins événementiels</a>
+    </div>
+  </form>
+  {% if options is not None %}
+    <section class="operations-panel" aria-labelledby="allocation-options">
+      <h2 id="allocation-options">Propositions{% if event %} pour {{ event.name }}{% endif %}</h2>
+      {% if options %}
+        <p>Les propositions privilégient le coût total, puis le créneau disponible le plus tôt.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <caption class="visually-hidden">Créneaux disponibles avec la quantité demandée</caption>
+            <thead><tr>
+              <th scope="col">Ressource</th><th scope="col">Début</th><th scope="col">Fin</th>
+              <th scope="col">Unités disponibles</th>
+              {% if view.is_admin %}<th scope="col">Coût estimé</th>{% endif %}
+              <th scope="col">Allocation</th>
+            </tr></thead>
+            <tbody>
+              {% for option in options %}
+                <tr>
+                  <th scope="row">{{ option.resource.name }}<span class="operations-table-caption">{{ option.resource.location }}</span></th>
+                  <td>{{ option.start|date:"d/m/Y H:i" }}</td>
+                  <td>{{ option.end|date:"d/m/Y H:i" }}</td>
+                  <td>{{ option.available }}</td>
+                  {% if view.is_admin %}<td>{{ option.cost|floatformat:2 }}</td>{% endif %}
+                  <td><a href="{{ option.url }}">Préparer l’allocation</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p>Aucune ressource de ce type ne couvre toute la durée et la quantité demandées. Essaie un autre créneau ou une quantité inférieure.</p>
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}

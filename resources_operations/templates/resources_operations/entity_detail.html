@@ -6,6 +6,43 @@
 {% block content %}
   {% include "resources_operations/components/navigation.html" %}
   {{ block.super }}
+  {% if entity.slug == "venues" %}
+    <section class="operations-panel" aria-labelledby="venue-compatibility">
+      <h2 id="venue-compatibility">Adéquation avec un événement</h2>
+      <form class="operations-filters" method="get">
+        <div class="field">
+          {{ event_form.event_id.label_tag }}
+          {{ event_form.event_id }}
+          {{ event_form.event_id.errors }}
+        </div>
+        <button class="btn btn-primary" type="submit">Comparer</button>
+        <a class="btn btn-secondary" href="{% url 'resources_operations:event_requirements' %}">Besoins événementiels</a>
+      </form>
+      {% if criteria %}
+        <h3>{{ event.name }} · {{ compatibility }}</h3>
+        <div class="table-wrap">
+          <table class="data-table">
+            <caption class="visually-hidden">Comparaison des besoins et de la capacité du lieu</caption>
+            <thead><tr><th scope="col">Critère</th><th scope="col">Besoins</th><th scope="col">Lieu</th><th scope="col">Résultat</th></tr></thead>
+            <tbody>
+              {% for criterion in criteria %}
+                <tr>
+                  <th scope="row">{{ criterion.label }}</th>
+                  <td>{{ criterion.required|default_if_none:"Non renseigné" }}</td>
+                  <td>{{ criterion.available|default_if_none:"Non renseigné" }}</td>
+                  <td>
+                    {% if criterion.status == "pass" %}Satisfait
+                    {% elif criterion.status == "fail" %}Insuffisant
+                    {% else %}À vérifier{% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
 {% endblock %}
 
 {% block page_actions %}
@@ -49,6 +86,12 @@
     <dd class="data">{{ object.unit_cost|floatformat:2 }}</dd>
     <dt>Emplacement</dt>
     <dd>{{ object.location }}</dd>
+    <dt>État</dt>
+    <dd>{{ object.get_status_display }}</dd>
+    <dt>Seuil de stock bas</dt>
+    <dd class="data">{{ object.low_stock_threshold }}</dd>
+    <dt>Unités utilisées (cumul)</dt>
+    <dd class="data">{{ total_used }}</dd>
   {% else %}
     <dt>Ressource</dt>
     <dd>
@@ -57,9 +100,17 @@
       {% else %}{{ object.resource }}{% endif %}
     </dd>
     <dt>Événement</dt>
-    <dd class="data">#{{ object.event_id }}</dd>
+    <dd>
+      {% if object.program_event %}
+        {{ object.program_event.title }} ·
+        <a href="{% url 'resources_operations:event_requirements_edit' object.program_event_id %}">Besoins événementiels</a> ·
+      {% else %}Référence historique{% endif %}
+      <span class="data">#{{ object.event_id }}</span>
+    </dd>
     <dt>Quantité allouée</dt>
     <dd class="data">{{ object.quantity }}</dd>
+    <dt>Quantité utilisée</dt>
+    <dd class="data">{{ object.used_quantity|default_if_none:"À renseigner" }}</dd>
     <dt>Début</dt>
     <dd><time datetime="{{ object.start_time|date:'c' }}">{{ object.start_time|date:"d/m/Y à H:i" }}</time></dd>
     <dt>Fin</dt>

@@ -6,6 +6,14 @@
       <a href="{% url 'resources_operations:entity_list' section.slug %}"
          {% if entity.slug == section.slug %}aria-current="location"{% endif %}>{{ section.plural }}</a>
     {% endfor %}
+    <a href="{% url 'resources_operations:event_requirements' %}"
+       {% if request.resolver_match.url_name == "event_requirements" or request.resolver_match.url_name == "event_requirements_edit" %}aria-current="page"{% endif %}>Besoins événementiels</a>
+    <a href="{% url 'resources_operations:allocation_planning' %}"
+       {% if request.resolver_match.url_name == "allocation_planning" %}aria-current="page"{% endif %}>Optimisation</a>
+    {% if view.is_admin %}
+      <a href="{% url 'resources_operations:inventory' %}"
+         {% if request.resolver_match.url_name == "inventory" %}aria-current="page"{% endif %}>Inventaire et prévisions</a>
+    {% endif %}
   </div>
   {% if show_local_logout %}
     <form method="post" action="{% url 'resources_operations:logout' %}">

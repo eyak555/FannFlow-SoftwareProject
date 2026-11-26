@@ -116,6 +116,16 @@
   vertical-align: middle;
 }
 .operations-form-fields .hint { margin: 0; }
+.operations-form-fields .helptext { display: block; margin-top: 4px; color: #576773; font-size: .875rem; }
+.operations-form-fields > div > label { display: block; margin-bottom: 6px; font-weight: 500; }
+.operations-panel { margin-top: 28px; }
+.operations-panel h2, .operations-panel h3 { color: var(--blue); }
+.operations-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+.operations-forecast { margin-top: 8px; }
+.operations-forecast summary { color: var(--blue); cursor: pointer; }
+.operations-forecast p { max-width: 38ch; font-size: .875rem; }
+.operations-forecast th, .operations-forecast td { padding: 5px 8px; font-size: .8125rem; }
+.operations-forecast td { font-variant-numeric: tabular-nums; }
 
 @media (max-width: 600px) {
   .operations-form-fields { grid-template-columns: 1fr; }

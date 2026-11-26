@@ -1,0 +1,78 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "resources_operations/components/navigation.html" %}
+  <header class="page-header">
+    <div>
+      <h1>{{ page_title }}</h1>
+      <p class="lede">Disponibilité au {{ now|date:"d/m/Y à H:i" }} et demande estimée sur quatre semaines.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'resources_operations:inventory_pdf' %}">Exporter en PDF</a>
+  </header>
+
+  {% if rows %}
+    <p class="operations-summary">
+      <span class="operations-status{% if low_count %} operations-status--warning{% endif %}">{{ low_count }} stock{{ low_count|pluralize }} bas</span>
+      <span class="operations-status{% if risk_count %} operations-status--warning{% endif %}">{{ risk_count }} risque{{ risk_count|pluralize }} de rupture</span>
+    </p>
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">Disponibilité, état et risque de rupture par ressource</caption>
+        <thead><tr>
+          <th scope="col">Ressource</th><th scope="col">État</th><th scope="col">Stock / disponibles</th>
+          <th scope="col">Coût unitaire</th><th scope="col">Unités utilisées</th><th scope="col">Prévision</th>
+        </tr></thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <th scope="row">
+                <a href="{% url 'resources_operations:entity_detail' 'resources' row.resource.pk %}">{{ row.resource.name }}</a>
+                <span class="operations-table-caption">{{ row.resource.type }} · {{ row.resource.location }}</span>
+              </th>
+              <td>{{ row.resource.get_status_display }}</td>
+              <td>
+                {{ row.resource.quantity }} / {{ row.free }}
+                {% if row.low %}<span class="operations-status operations-status--warning">Stock bas</span>{% endif %}
+                <span class="operations-table-caption">Seuil {{ row.resource.low_stock_threshold }}</span>
+              </td>
+              <td>{{ row.resource.unit_cost|floatformat:2 }}</td>
+              <td>{{ row.used }}</td>
+              <td>
+                {% if row.shortage %}
+                  <span class="operations-status operations-status--warning">Risque de rupture · {{ row.shortage }} unité(s)</span>
+                {% endif %}
+                <details class="operations-forecast">
+                  <summary>Voir les besoins par semaine</summary>
+                  {% if row.model %}
+                    <p>{{ row.model.method }} · écart moyen {{ row.model.error|floatformat:1 }} unité(s) sur les semaines de validation.</p>
+                  {% else %}
+                    <p>Historique insuffisant pour entraîner une prévision. Les réservations connues restent prises en compte.</p>
+                  {% endif %}
+                  <table>
+                    <caption class="visually-hidden">Pics de demande estimés et réservés</caption>
+                    <thead><tr><th scope="col">Semaine</th><th scope="col">Réservé</th><th scope="col">Estimé</th><th scope="col">Manque</th></tr></thead>
+                    <tbody>
+                      {% for period in row.periods %}
+                        <tr>
+                          <th scope="row">{{ period.start|date:"d/m" }}–{{ period.end|date:"d/m" }}</th>
+                          <td>{{ period.reserved }}</td>
+                          <td>{{ period.estimated|default_if_none:"—" }}</td>
+                          <td>{{ period.shortage }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </details>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p>Aucune ressource enregistrée. <a href="{% url 'resources_operations:entity_create' 'resources' %}">Ajouter une ressource</a>.</p>
+  {% endif %}
+{% endblock %}

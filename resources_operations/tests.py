@@ -8,6 +8,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from events_program.models import Event
+
 from .models import Resource, ResourceAllocation, Venue
 
 
@@ -38,12 +40,22 @@ def create_user(name, *, admin=False, director=False, organizer=False):
     return user
 
 
+def create_event(director, *, pk=None, title="Festival des Arts", capacity=250):
+    start = timezone.now() + timedelta(days=2)
+    return Event.objects.create(
+        pk=pk, title=title, description="Événement de test", event_type=Event.EventType.FESTIVAL,
+        start_date=start, end_date=start + timedelta(days=1), registration_deadline=start - timedelta(hours=1),
+        capacity=capacity, location="Tunis", director=director,
+    )
+
+
 class ResourceOperationsTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.admin = create_user("admin-test", admin=True)
         cls.director = create_user("director-test", director=True)
         cls.participant = create_user("participant-test")
+        cls.event = create_event(cls.director, pk=27)
         cls.resource = Resource.objects.create(
             name="Éclairage scène", type="Matériel", quantity=10, unit_cost="45.50", location="Entrepôt",
         )
@@ -126,7 +138,7 @@ class ResourceOperationsTests(TestCase):
         allocation = ResourceAllocation.objects.get()
         detail = self.url("detail", slug, allocation.pk)
         self.assertRedirects(response, detail)
-        self.assertContains(self.client.get(self.url("list", slug), {"q": "27"}), "Événement n° 27")
+        self.assertContains(self.client.get(self.url("list", slug), {"q": "27"}), "Festival des Arts")
         self.assertContains(self.client.get(detail), "#27")
         self.assertEqual(allocation.start_time, self.start)
 
@@ -218,23 +230,24 @@ class ResourceOperationsTests(TestCase):
         self.assertEqual(self.client.post(self.url("create", "resource-allocations"), self.allocation_data()).status_code, 302)
 
         self.client.force_login(self.participant)
-        self.assertEqual(self.client.get(home).status_code, 403)
+        response = self.client.get(home)
+        self.assertEqual(response.status_code, 403)
         self.assertEqual(self.client.get(self.url("create", "venues")).status_code, 403)
         self.client.logout()
         response = self.client.get(home)
         login_name = settings.LOGIN_URL if get_user_model()._meta.label_lower == "users_teams.user" else "resources_operations:login"
         self.assertRedirects(response, f"{reverse(login_name)}?next={home}", fetch_redirect_response=False)
 
-    def test_organizer_landing_page_offers_no_management_links(self):
+    def test_organizer_cannot_open_resources_module(self):
         if get_user_model()._meta.label_lower != "users_teams.user":
             self.skipTest("Le rôle organisateur nécessite le modèle utilisateur FannFlow.")
         self.client.force_login(create_user("organizer-test", organizer=True))
         response = self.client.get(reverse("resources_operations:home"))
-        self.assertContains(response, "La gestion des lieux et des allocations est réservée")
+        self.assertEqual(response.status_code, 403)
         for slug in ("venues", "resources", "resource-allocations"):
             with self.subTest(slug=slug):
                 listing = self.url("list", slug)
-                self.assertNotContains(response, f'href="{listing}"')
+                self.assertNotContains(response, f'href="{listing}"', status_code=403)
                 self.assertEqual(self.client.get(listing).status_code, 403)
                 self.assertEqual(self.client.post(self.url("create", slug)).status_code, 403)
 
@@ -249,3 +262,12 @@ class ResourceOperationsTests(TestCase):
         self.assertRedirects(response, listing)
         self.assertRedirects(self.client.post(reverse("resources_operations:logout")), login)
         self.assertEqual(self.client.get(listing).status_code, 302)
+
+    def test_module_login_redirects_participant_to_fannflow_home(self):
+        login = reverse("resources_operations:login")
+        credentials = {"username": self.participant.get_username(), "password": PASSWORD}
+        for target in ("", reverse("resources_operations:home"), self.url("list", "venues")):
+            with self.subTest(target=target):
+                self.client.logout()
+                response = self.client.post(login, {**credentials, "next": target})
+                self.assertRedirects(response, reverse("core:home"))

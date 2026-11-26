@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'resources_operations/css/operations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "resources_operations/components/navigation.html" %}
+  <header class="page-header">
+    <h1>{{ page_title }}</h1>
+    {% if can_access_backoffice %}
+      <a class="btn btn-secondary" href="{% url 'events_program:entity_list' 'events' %}">Programme des événements</a>
+    {% endif %}
+  </header>
+  <section class="operations-panel" aria-labelledby="planning-events">
+    <h2 id="planning-events">Événements</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="visually-hidden">Événements disponibles pour les allocations et la comparaison des lieux</caption>
+        <thead><tr><th scope="col">Événement</th><th scope="col">Participants attendus</th><th scope="col">Lieu prévu</th><th scope="col">Besoins</th></tr></thead>
+        <tbody>
+          {% for event in events %}
+            <tr>
+              <th scope="row">{{ event.label }}</th>
+              <td>{{ event.attendees|default_if_none:"Non renseigné" }}</td>
+              <td>{{ event.venue_name|default_if_none:"À sélectionner" }}</td>
+              <td><a href="{% url 'resources_operations:event_requirements_edit' event.id %}">Renseigner les besoins</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4">Aucun événement du programme dans votre périmètre.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
