@@ -48,14 +48,14 @@ class RegistrationAccessCrudTests(TestCase):
             access_point=self.access_point,
         )
 
-    def test_registration_access_homepage_uses_module_template_and_brand(self):
+    def test_registration_access_homepage_uses_admin_dashboard_template(self):
         response = self.client.get(reverse("registration_access:home"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(
             response,
             "registration_access/home.html",
         )
-        self.assertContains(response, "De l’inscription à l’entrée")
+        self.assertContains(response, "Tableau de bord")
         self.assertContains(response, "Inscriptions")
         self.assertContains(response, "Points d’accès")
 

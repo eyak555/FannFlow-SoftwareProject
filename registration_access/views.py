@@ -172,7 +172,7 @@ class RegistrationDeleteView(AdministratorRequiredMixin, DeleteView):
         if self.object.tickets.filter(attendances__isnull=False).exists():
             messages.error(
                 self.request,
-                "Cette inscription possÃ¨de des prÃ©sences enregistrÃ©es. Supprimez dâ€™abord les brouillons ; les entrÃ©es effectuÃ©es doivent Ãªtre conservÃ©es.",
+                "Cette inscription possède des présences enregistrées. Supprimez d’abord les brouillons ; les entrées effectuées doivent être conservées.",
             )
             return HttpResponseRedirect(self.get_success_url())
         return super().form_valid(form)
@@ -240,7 +240,7 @@ class ParticipantRegistrationCreateView(LoginRequiredMixin, CreateView):
             create_registration_ticket(self.object)
         messages.success(
             self.request,
-            "Votre demande est enregistrÃ©e. Retrouvez votre billet pour le confirmer gratuitement ou simuler le paiement ; aucun dÃ©bit rÃ©el nâ€™est effectuÃ©.",
+            "Votre demande est enregistrée. Retrouvez votre billet pour le confirmer gratuitement ou simuler le paiement ; aucun débit réel n’est effectué.",
         )
         return response
 
@@ -260,13 +260,13 @@ class ParticipantRegistrationCancelView(LoginRequiredMixin, View):
         if not can_cancel:
             messages.error(
                 request,
-                "Seule une inscription en attente de paiement peut Ãªtre annulÃ©e ici. Contactez lâ€™administration pour toute autre demande.",
+                "Seule une inscription en attente de paiement peut être annulée ici. Contactez l’administration pour toute autre demande.",
             )
         else:
             registration.status = Registration.STATUS_CANCELLED
             registration.save(update_fields=["status"])
             sync_registration_tickets(registration)
-            messages.success(request, "Votre inscription a Ã©tÃ© annulÃ©e.")
+            messages.success(request, "Votre inscription a été annulée.")
         return redirect("registration_access:my_registrations")
 
 
@@ -284,12 +284,12 @@ class ParticipantRegistrationConfirmView(LoginRequiredMixin, FormView):
             self.registration.status != Registration.STATUS_PENDING
             or self.registration.payment_status != Registration.PAYMENT_PENDING
         ):
-            messages.info(request, "Cette inscription a dÃ©jÃ  Ã©tÃ© traitÃ©e.")
+            messages.info(request, "Cette inscription a déjà été traitée.")
             return redirect("registration_access:my_tickets")
         if not self.tickets or any(
             ticket.status != Ticket.STATUS_PENDING for ticket in self.tickets
         ):
-            messages.error(request, "Aucun billet en attente ne peut Ãªtre confirmÃ©.")
+            messages.error(request, "Aucun billet en attente ne peut être confirmé.")
             return redirect("registration_access:my_tickets")
         self.total_amount = sum(
             (ticket.price for ticket in self.tickets),
@@ -328,10 +328,10 @@ class ParticipantRegistrationConfirmView(LoginRequiredMixin, FormView):
             if registration.payment_status == Registration.PAYMENT_PAID:
                 messages.success(
                     self.request,
-                    "Votre paiement de test est confirmÃ©. Votre billet est activÃ©.",
+                    "Votre paiement de test est confirmé. Votre billet est activé.",
                 )
             else:
-                messages.success(self.request, "Votre billet gratuit est confirmÃ©.")
+                messages.success(self.request, "Votre billet gratuit est confirmé.")
         return redirect("registration_access:my_tickets")
 
 
@@ -450,7 +450,7 @@ class TicketDeleteView(AdministratorRequiredMixin, DeleteView):
         if self.object.attendances.exists():
             messages.error(
                 self.request,
-                "Ce billet possÃ¨de des prÃ©sences liÃ©es et ne peut pas Ãªtre supprimÃ©.",
+                "Ce billet possède des présences liées et ne peut pas être supprimé.",
             )
             return HttpResponseRedirect(self.get_success_url())
         return super().form_valid(form)
@@ -566,7 +566,7 @@ class AttendanceDeleteView(AdministratorRequiredMixin, DeleteView):
         if self.object.check_in:
             messages.error(
                 self.request,
-                "Une prÃ©sence avec une entrÃ©e enregistrÃ©e ne peut pas Ãªtre supprimÃ©e.",
+                "Une présence avec une entrée enregistrée ne peut pas être supprimée.",
             )
             return HttpResponseRedirect(self.get_success_url())
         return super().form_valid(form)
@@ -588,7 +588,7 @@ class AttendanceCheckInView(AdministratorRequiredMixin, FormView):
             return self.form_invalid(form)
         messages.success(
             self.request,
-            f"EntrÃ©e enregistrÃ©e pour {attendance.ticket.registration.user}.",
+            f"Entrée enregistrée pour {attendance.ticket.registration.user}.",
         )
         return HttpResponseRedirect(
             reverse_lazy(
@@ -607,7 +607,7 @@ class AttendanceCheckOutView(AdministratorRequiredMixin, View):
         else:
             messages.success(
                 request,
-                f"Sortie enregistrÃ©e pour {attendance.ticket.registration.user}.",
+                f"Sortie enregistrée pour {attendance.ticket.registration.user}.",
             )
         return HttpResponseRedirect(
             reverse_lazy("registration_access:entity_list", kwargs={"entity": "attendances"})
@@ -694,7 +694,7 @@ class AccessPointDeleteView(AdministratorRequiredMixin, DeleteView):
         if self.object.attendances.exists():
             messages.error(
                 self.request,
-                "Ce point dâ€™accÃ¨s possÃ¨de des prÃ©sences liÃ©es et ne peut pas Ãªtre supprimÃ©.",
+                "Ce point d’accès possède des présences liées et ne peut pas être supprimé.",
             )
             return HttpResponseRedirect(self.get_success_url())
         return super().form_valid(form)
@@ -728,7 +728,7 @@ def module_home(request):
         },
         {
             "slug": "access-points",
-            "title": "Points d'accès",
+            "title": "Points d’accès",
             "description": "Organisez les entrées, emplacements et capacités.",
             "icon": "access",
         },
@@ -822,7 +822,6 @@ def module_home(request):
         CAT_LABELS = {
             Ticket.CATEGORY_STANDARD: "Standard",
             Ticket.CATEGORY_VIP: "VIP",
-            Ticket.CATEGORY_GROUP: "Groupe",
         }
         ticket_cat_data = [
             {"label": CAT_LABELS.get(r["category"], r["category"]), "value": r["count"]}
