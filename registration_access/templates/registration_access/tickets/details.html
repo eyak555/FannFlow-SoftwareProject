@@ -7,7 +7,7 @@
     <div class="detail-item"><dt class="detail-label">Code billet</dt><dd class="detail-value data">{{ ticket.code }}</dd></div>
     <div class="detail-item"><dt class="detail-label">Inscription</dt><dd class="detail-value">{{ ticket.registration }}</dd></div>
     <div class="detail-item"><dt class="detail-label">Catégorie</dt><dd class="detail-value">{{ ticket.get_category_display }}</dd></div>
-    <div class="detail-item"><dt class="detail-label">Prix</dt><dd class="detail-value">{{ ticket.price }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Prix</dt><dd class="detail-value">{{ ticket.price }} DT</dd></div>
     <div class="detail-item"><dt class="detail-label">Statut</dt><dd class="detail-value"><span class="status-pill">{{ ticket.get_status_display }}</span></dd></div>
   </dl>
   {% if qr_code_image %}

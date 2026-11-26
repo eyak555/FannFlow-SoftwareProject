@@ -27,11 +27,9 @@ class Registration(models.Model):
 
     TICKET_TYPE_STANDARD = "standard"
     TICKET_TYPE_VIP = "vip"
-    TICKET_TYPE_GROUP = "group"
     TICKET_TYPE_CHOICES = [
         (TICKET_TYPE_STANDARD, "Standard"),
         (TICKET_TYPE_VIP, "VIP"),
-        (TICKET_TYPE_GROUP, "Groupe"),
     ]
 
     user = models.ForeignKey(
@@ -99,7 +97,6 @@ class Registration(models.Model):
 class Ticket(models.Model):
     CATEGORY_STANDARD = Registration.TICKET_TYPE_STANDARD
     CATEGORY_VIP = Registration.TICKET_TYPE_VIP
-    CATEGORY_GROUP = Registration.TICKET_TYPE_GROUP
     CATEGORY_CHOICES = Registration.TICKET_TYPE_CHOICES
 
     STATUS_AVAILABLE = "available"
@@ -137,7 +134,7 @@ class Ticket(models.Model):
                 message="Le prix du billet ne peut pas être négatif.",
             )
         ],
-        verbose_name="Prix",
+        verbose_name="Prix (DT)",
     )
     category = models.CharField(
         max_length=20,

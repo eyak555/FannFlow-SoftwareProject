@@ -27,12 +27,12 @@
   <div class="registration-table-heading"><div><h2>Billets émis</h2><p>{{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize:"s" }}</p></div>{% if search_query or selected_category or selected_status %}<span class="filter-active">Filtres actifs</span>{% endif %}</div>
   <div class="table-wrap registration-table-wrap">
     <table class="data-table registration-table">
-      <thead><tr><th>Billet</th><th>Participant</th><th>Catégorie</th><th>Prix</th><th>Statut</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+      <thead><tr><th>Billet</th><th>Participant</th><th>Catégorie</th><th>Prix (DT)</th><th>Statut</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
       <tbody>{% for ticket in tickets %}
         <tr>
           <td><span class="ticket-code">{{ ticket.code }}</span></td>
           <td><div class="participant-cell"><span class="participant-avatar" aria-hidden="true">{{ ticket.registration.user.initials }}</span><span><strong>{{ ticket.registration.user.get_full_name|default:ticket.registration.user.email }}</strong>{% if ticket.registration.user.email %}<small>{{ ticket.registration.user.email }}</small>{% endif %}</span></div></td>
-          <td>{{ ticket.get_category_display }}</td><td>{{ ticket.price }}</td>
+          <td>{{ ticket.get_category_display }}</td><td>{{ ticket.price }} DT</td>
           <td>{% if ticket.status == "available" %}<span class="status-pill status-pill--success"><span></span>{{ ticket.get_status_display }}</span>{% elif ticket.status == "pending" %}<span class="status-pill status-pill--pending"><span></span>{{ ticket.get_status_display }}</span>{% elif ticket.status == "used" %}<span class="status-pill status-pill--info"><span></span>{{ ticket.get_status_display }}</span>{% elif ticket.status == "cancelled" %}<span class="status-pill status-pill--danger"><span></span>{{ ticket.get_status_display }}</span>{% else %}<span class="status-pill status-pill--neutral"><span></span>{{ ticket.get_status_display }}</span>{% endif %}</td>
           <td><div class="table-actions"><a class="table-action table-action--view" href="{% url 'registration_access:entity_detail' 'tickets' ticket.pk %}">Voir</a><a class="table-action table-action--edit" href="{% url 'registration_access:entity_update' 'tickets' ticket.pk %}">Modifier</a><a class="table-action table-action--delete" href="{% url 'registration_access:entity_delete' 'tickets' ticket.pk %}">Supprimer</a></div></td>
         </tr>

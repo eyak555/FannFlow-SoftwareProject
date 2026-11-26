@@ -50,7 +50,7 @@ def ticket_is_ready_for_qr(ticket):
 def create_registration_ticket(registration):
     ticket = Ticket.objects.create(
         registration=registration,
-        price=PROTOTYPE_TICKET_PRICE,
+        price=_event_ticket_price(registration),
         category=ticket_category_for_registration(registration),
         status=Ticket.STATUS_PENDING,
     )
@@ -58,6 +58,17 @@ def create_registration_ticket(registration):
     if ticket.status != Ticket.STATUS_PENDING:
         ticket.save(update_fields=["status"])
     return ticket
+
+
+def _event_ticket_price(registration):
+    from events_program.models import Event
+
+    event = Event.objects.filter(pk=registration.event_id).first()
+    if event is None:
+        return PROTOTYPE_TICKET_PRICE
+    if registration.ticket_type == Registration.TICKET_TYPE_VIP:
+        return event.vip_ticket_price
+    return event.ticket_price
 
 
 def sync_registration_tickets(registration):
@@ -73,6 +84,8 @@ def sync_registration_tickets(registration):
         if category != ticket.category:
             ticket.category = category
             changed_fields.append("category")
+            ticket.price = _event_ticket_price(registration)
+            changed_fields.append("price")
         if changed_fields:
             ticket.save(update_fields=changed_fields)
 

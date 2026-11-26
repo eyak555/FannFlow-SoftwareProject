@@ -8,9 +8,9 @@
 
   <dl class="detail-grid">
     {% for ticket in tickets %}
-      <div class="detail-item"><dt class="detail-label">Billet {{ ticket.code }}</dt><dd class="detail-value">{{ ticket.price }}</dd></div>
+      <div class="detail-item"><dt class="detail-label">Billet {{ ticket.code }}</dt><dd class="detail-value">{{ ticket.price }} DT</dd></div>
     {% endfor %}
-    <div class="detail-item"><dt class="detail-label">Total</dt><dd class="detail-value">{{ total_amount }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Total</dt><dd class="detail-value">{{ total_amount }} DT</dd></div>
   </dl>
 
   {% if payment_required %}

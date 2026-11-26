@@ -25,16 +25,26 @@ python manage.py runserver
 
 ## Inscriptions, billets et QR
 
-- La création d’une inscription émet automatiquement un billet associé. Jusqu’à l’intégration des tarifs des événements, son prix est fixé à `0,00` et sa catégorie reprend le type de billet reconnu (`Standard`, `VIP` ou `Groupe` ; sinon `Standard`).
+- La création d’une inscription émet automatiquement un billet associé. Les catégories sont Standard et VIP, et chacune utilise le tarif configuré sur l’événement ; pour un ancien identifiant sans événement associé, le tarif provisoire est de `10,00`.
 - Le billet reste « En attente » tant que l’inscription n’est pas confirmée. Un billet payant reste aussi en attente jusqu’au paiement.
-- Le type de billet de l’inscription propose les choix Standard, VIP et Groupe. Le code lisible du billet (`FF-000001`) est généré à partir de son identifiant auto-incrémenté ; le QR SVG est généré à partir de ce code et s’affiche sur la fiche uniquement si le billet est disponible.
-- Quand le module Événements fournira les tarifs, remplacer le prix provisoire dans `registration_access/services.py`.
+- Le type de billet de l’inscription propose uniquement Standard et VIP. Le code lisible du billet (`FF-000001`) est généré à partir de son identifiant auto-incrémenté ; le QR SVG est généré à partir de ce code et s’affiche sur la fiche uniquement si le billet est disponible.
 - Le statut de paiement est encore géré manuellement : aucun paiement en ligne ni remboursement bancaire n’est intégré.
 - Une entrée est enregistrée avec le code QR et un point d’accès du même événement. Le billet devient alors « Utilisé » et ne peut pas servir à une seconde entrée ; la sortie est enregistrée sur cette présence et libère une place à la capacité du point.
 - La capacité d’un point d’accès est le nombre maximal de personnes présentes simultanément. Une sortie déjà enregistrée, une entrée effectuée, un billet consommé ou un point d’accès avec des présences liées ne peuvent pas être supprimés ou déplacés au moyen du CRUD.
 - Les présences existantes sont conservées lors de la migration : chaque ancien nom de porte devient un point d’accès pour l’événement concerné. Son lieu est « À préciser » et sa capacité est initialisée au nombre de personnes encore présentes (au minimum 1) ; vérifiez et ajustez ces points après migration.
-- Le module Événements ne contient pas encore de modèle `Event`. Les deux champs `event_id` restent donc des identifiants numériques temporaires ; une vraie clé étrangère sera à ajouter lors de l’intégration des modules.
+- Le module Événements fournit les événements, leurs activités et intervenants. Le responsable est un compte actif de directeur, organisateur ou administrateur du module `users_teams`. Les inscriptions et points d’accès historiques conservent leur identifiant numérique `event_id` pour compatibilité ; les nouveaux événements réutilisent leur clé primaire comme identifiant d’événement.
+- La fiche publique d’un événement publié permet de demander une inscription. Les prix Standard et VIP sont exprimés en dinars tunisiens (DT) ; le billet reprend le prix correspondant configuré sur l’événement. Les anciens identifiants sans événement correspondant conservent le tarif provisoire de 10,00 DT.
 - L’écran de contrôle permet de saisir le code billet lu par un scanner externe ; l’accès caméra et la lecture automatique ne sont pas inclus.
+
+## Événements et programme
+
+- Le tableau de bord Événements affiche le total, les événements à venir, en cours et terminés, ainsi que les activités, inscriptions et répartitions par catégorie.
+- Les événements ont un statut de publication (brouillon, publié ou annulé) et un état de cycle de vie calculé à partir de leurs dates. Seuls les événements publiés sont visibles dans le catalogue public.
+- Les événements ne peuvent pas être supprimés tant que des inscriptions ou points d’accès les référencent ; ils peuvent être annulés ou dépubliés à la place.
+- Les activités sont datées à l’intérieur de leur événement et peuvent être liées à plusieurs intervenants.
+- Les événements utilisent des illustrations SVG locales par catégorie et peuvent recevoir une image JPG, PNG ou WEBP (5 Mo maximum). Les images importées sont stockées sous `MEDIA_ROOT/events/<categorie>/` et supprimées avec l’événement ou après leur remplacement.
+- Le catalogue public utilise une pagination Django de neuf événements par page. Recherche, catégorie, lieu, période, état et tri sont appliqués en base et conservés lors de la navigation.
+- L’organisateur peut définir l’âge minimum et/ou maximum accepté. La condition est affichée sur la fiche publique et contrôlée à l’inscription d’après la date de naissance du profil ; pour vérifier une restriction d’âge, la date de naissance est obligatoire. Le billet VIP a son propre prix.
 
 ## Ajouter un CRUD dans une branche
 

@@ -4,7 +4,15 @@
 <section class="page-card page-card--narrow">
   <p class="eyebrow">Espace participant</p>
   <h1>Demande d’inscription</h1>
-  <p class="page-intro">Votre compte sera automatiquement associé à cette demande. Le catalogue d’événements n’étant pas encore connecté, saisissez l’identifiant communiqué par l’administration. Le paiement en ligne sera intégré au Sprint 2 ; la validation est manuelle dans ce prototype.</p>
+  <p class="page-intro">Votre compte sera automatiquement associé à cette demande. Le paiement en ligne n’est pas encore intégré; le paiement est simulé dans ce prototype.</p>
+  {% if event %}
+    <aside class="event-registration-summary">
+      <h2>{{ event.title }}</h2>
+      <p>{{ event.start_date|date:"j F Y, H:i" }} · {{ event.location }}</p>
+      <p>Accès : {{ event.age_requirement_display }}</p>
+      <p>Standard : {% if event.ticket_price %}{{ event.ticket_price }} DT{% else %}Gratuit{% endif %} · VIP : {% if event.vip_ticket_price %}{{ event.vip_ticket_price }} DT{% else %}Gratuit{% endif %}</p>
+    </aside>
+  {% endif %}
   <form class="ff-form app-form" method="post" novalidate>
     {% csrf_token %}
     {{ form.as_p }}

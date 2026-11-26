@@ -101,7 +101,7 @@ class RegistrationAccessCrudTests(TestCase):
         self.assertContains(registration_form_response, 'name="ticket_type"')
         self.assertContains(registration_form_response, 'value="standard"')
         self.assertContains(registration_form_response, 'value="vip"')
-        self.assertContains(registration_form_response, 'value="group"')
+        self.assertNotContains(registration_form_response, 'value="group"')
 
         self.assertEqual(self.ticket.code, f"FF-{self.ticket.pk:06d}")
         second_ticket = Ticket.objects.create(
@@ -495,7 +495,7 @@ class RegistrationAccessCrudTests(TestCase):
                 Ticket,
                 "category",
                 Ticket.CATEGORY_VIP,
-                Ticket.CATEGORY_GROUP,
+                Ticket.CATEGORY_STANDARD,
             ),
             (
                 "attendances",
@@ -623,7 +623,9 @@ class RegistrationAccessCrudTests(TestCase):
         form_response = self.client.get(
             reverse("registration_access:registration_request")
         )
-        self.assertContains(form_response, "Le paiement en ligne sera intégré au Sprint 2")
+        self.assertContains(form_response, "Le paiement en ligne n’est pas encore intégré")
+        self.assertContains(form_response, "Standard")
+        self.assertContains(form_response, "VIP")
 
     def test_participant_lists_and_ticket_details_are_scoped_to_their_account(self):
         another_user = get_user_model().objects.create_user(

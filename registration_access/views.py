@@ -22,6 +22,7 @@ from .forms import (
     PrototypePaymentForm,
     RegistrationForm,
     TicketForm,
+    validate_event_registration,
 )
 from .models import AccessPoint, Attendance, Registration, Ticket
 from .qr_codes import qr_code_data_uri
@@ -192,11 +193,49 @@ class ParticipantRegistrationCreateView(LoginRequiredMixin, CreateView):
     form_class = ParticipantRegistrationForm
     success_url = reverse_lazy("registration_access:my_registrations")
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        event_id = self.request.GET.get("event_id", "")
+        if event_id.isdecimal():
+            from events_program.models import Event
+
+            if Event.objects.filter(pk=int(event_id), status=Event.Status.PUBLISHED).exists():
+                initial["event_id"] = int(event_id)
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        event_id = self.request.POST.get("event_id") or self.request.GET.get("event_id", "")
+        if event_id.isdecimal():
+            from events_program.models import Event
+
+            context["event"] = Event.objects.filter(
+                pk=int(event_id),
+                status=Event.Status.PUBLISHED,
+            ).first()
+        return context
+
     def form_valid(self, form):
         form.instance.user = self.request.user
         form.instance.status = Registration.STATUS_PENDING
         form.instance.payment_status = Registration.PAYMENT_PENDING
         with transaction.atomic():
+            from events_program.models import Event
+
+            event = Event.objects.select_for_update().filter(
+                pk=form.cleaned_data["event_id"]
+            ).first()
+            if event is not None:
+                try:
+                    validate_event_registration(event, self.request.user)
+                except ValidationError as error:
+                    form.add_error("event_id", error)
+                    return self.form_invalid(form)
             response = super().form_valid(form)
             create_registration_ticket(self.object)
         messages.success(

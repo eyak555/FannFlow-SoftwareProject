@@ -1,9 +1,30 @@
 from decimal import Decimal
 
 from django import forms
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from core.forms import FannFlowFormMixin, FannFlowModelForm
 from .models import AccessPoint, Attendance, Registration, Ticket
+
+
+def validate_event_registration(event, user=None):
+    from events_program.models import Event
+
+    if event.status != Event.Status.PUBLISHED:
+        raise ValidationError("Les inscriptions ne sont ouvertes que pour un événement publié.")
+    if event.registration_deadline <= timezone.now():
+        raise ValidationError("La période d’inscription à cet événement est terminée.")
+    age_error = event.age_access_error(user)
+    if age_error:
+        raise ValidationError(age_error)
+    if (
+        Registration.objects.filter(event_id=event.pk)
+        .exclude(status=Registration.STATUS_CANCELLED)
+        .count()
+        >= event.capacity
+    ):
+        raise ValidationError("La capacité maximale de cet événement est atteinte.")
 
 
 class RegistrationForm(FannFlowModelForm):
@@ -28,6 +49,20 @@ class RegistrationForm(FannFlowModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        event_id = cleaned_data.get("event_id")
+        user = cleaned_data.get("user")
+        if event_id and user and (
+            not self.instance.pk
+            or event_id != self.instance.event_id
+            or user.pk != self.instance.user_id
+        ):
+            from events_program.models import Event
+
+            event = Event.objects.filter(pk=event_id).first()
+            if event:
+                age_error = event.age_access_error(user)
+                if age_error:
+                    self.add_error("user", age_error)
         status = cleaned_data.get("status")
         payment_status = cleaned_data.get("payment_status")
 
@@ -101,9 +136,19 @@ class ParticipantRegistrationForm(FannFlowModelForm):
             },
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user = user
         self.fields["event_id"].widget.attrs["min"] = 1
+
+    def clean_event_id(self):
+        event_id = self.cleaned_data["event_id"]
+        from events_program.models import Event
+
+        event = Event.objects.filter(pk=event_id).first()
+        if event is not None:
+            validate_event_registration(event, self.user)
+        return event_id
 
 
 class PrototypePaymentForm(forms.Form):
@@ -118,7 +163,7 @@ class FreeTicketConfirmationForm(FannFlowFormMixin, forms.Form):
 
 class TicketForm(FannFlowModelForm):
     price = forms.DecimalField(
-        label="Prix (€)",
+        label="Prix (DT)",
         min_value=Decimal("0.00"),
         max_digits=10,
         decimal_places=2,
