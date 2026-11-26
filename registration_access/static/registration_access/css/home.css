@@ -1,3 +1,12 @@
+/* ==========================================================================
+   Registration & Access — home.css
+   Styles spécifiques à la page d'accueil du module.
+   Couvre le tableau de bord admin ET la vue participant (hero + cards).
+   ========================================================================== */
+
+/* ───────────────────────────────────────────────────────────────────────────
+   HERO (vue participant / visiteur)
+   ─────────────────────────────────────────────────────────────────────────── */
 .access-hero {
   position: relative;
   display: grid;
@@ -143,6 +152,9 @@
   font-size: 2rem;
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+   CARDS DE ZONES (vue participant)
+   ─────────────────────────────────────────────────────────────────────────── */
 .access-areas { margin-top: 44px; }
 .access-section-heading { margin-bottom: 20px; }
 .access-section-heading h2 {
@@ -152,7 +164,13 @@
   font-size: clamp(22px, 3vw, 30px);
 }
 .access-section-intro { margin: 8px 0 0; color: #738087; }
-.access-area-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+
+.access-area-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 14px;
+}
+
 .access-area-card {
   display: flex;
   min-height: 230px;
@@ -164,8 +182,15 @@
   padding: 19px;
   transition: border-color .18s ease, box-shadow .18s ease;
 }
-.access-area-card:hover { border-color: var(--blue-secondary); box-shadow: 0 10px 24px rgba(30,58,95,.08); }
-.access-area-card__top { display: flex; align-items: center; justify-content: space-between; }
+.access-area-card:hover {
+  border-color: var(--blue-secondary);
+  box-shadow: 0 10px 24px rgba(30,58,95,.08);
+}
+.access-area-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .access-area-icon {
   display: grid;
   width: 44px;
@@ -180,13 +205,97 @@
 .access-area-icon--attendance { background: #EAF4EC; color: var(--green); }
 .access-area-icon--access { background: #FBECEC; color: var(--red); }
 .access-area-arrow { color: #9BA8AE; font-size: 1.1rem; }
-.access-area-card h3 { margin: 17px 0 7px; color: var(--blue); font-family: var(--font-heading); font-size: 1.05rem; }
-.access-area-card > p { flex: 1; margin: 0 0 16px; color: #738087; font-size: .875rem; line-height: 1.55; }
-.access-area-card__actions { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #EDF1F4; padding-top: 12px; }
-.access-area-card__actions a { color: var(--blue-secondary); font-size: .8125rem; font-weight: 600; text-decoration: none; }
+.access-area-card h3 {
+  margin: 17px 0 7px;
+  color: var(--blue);
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+}
+.access-area-card > p {
+  flex: 1;
+  margin: 0 0 16px;
+  color: #738087;
+  font-size: .875rem;
+  line-height: 1.55;
+}
+.access-area-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #EDF1F4;
+  padding-top: 12px;
+}
+.access-area-card__actions a {
+  color: var(--blue-secondary);
+  font-size: .8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
 .access-area-card__actions a:hover { color: var(--blue); text-decoration: underline; }
 .access-area-card__actions a:last-child { color: var(--blue); }
 .access-area-card__actions a span { color: var(--orange); font-size: 1rem; }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   TABLEAU DE BORD ADMIN — lignes de modules dans le panneau latéral
+   ─────────────────────────────────────────────────────────────────────────── */
+.ra-module-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 10px;
+  transition: background .15s;
+}
+.ra-module-row:hover { background: var(--canvas, #f5f7fa); }
+
+.ra-module-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 10px;
+  background: #EEF4F6;
+  color: var(--blue-secondary, #3a7bd5);
+  font-size: 1.1rem;
+}
+.ra-module-icon--ticket   { background: #FFF3DC; color: #B97817; }
+.ra-module-icon--attendance { background: #EAF4EC; color: #2f8a4c; }
+.ra-module-icon--access   { background: #FBECEC; color: #b23d3d; }
+
+.ra-module-info {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+.ra-module-info strong {
+  color: var(--navy-700, #1E3A5F);
+  font-size: .88rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ra-module-info small { color: var(--ink-3, #6b7885); font-size: .75rem; }
+
+.ra-module-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.ra-module-actions a {
+  color: var(--teal-600, #2E7D8A);
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ra-module-actions a:hover { text-decoration: underline; }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ─────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 1000px) {
   .access-area-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
 }

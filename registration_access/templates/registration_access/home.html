@@ -6,22 +6,230 @@
 {% endblock %}
 
 {% block content %}
+
+{% if is_administrator and dashboard %}
+  {% with d=dashboard %}
+
+  {# ===== En-tête ===== #}
+  <header class="adm-head">
+    <div>
+      <p class="adm-head__date"><i data-lucide="calendar" aria-hidden="true"></i> {% now "l j F Y" %}</p>
+      <h1>Tableau de bord</h1>
+      <p class="adm-head__lead"><strong>Registration &amp; Access.</strong> Gérez les inscriptions, billets, présences et points d'accès.</p>
+    </div>
+    <div class="adm-head__actions">
+      <a class="btn btn-ghost" href="{% url 'registration_access:entity_list' 'registrations' %}">
+        <i data-lucide="list" aria-hidden="true"></i> Inscriptions
+      </a>
+      <a class="btn btn-primary" href="{% url 'registration_access:entity_create' 'registrations' %}">
+        <i data-lucide="plus" aria-hidden="true"></i> Nouvelle inscription
+      </a>
+    </div>
+  </header>
+
+  {# ===== KPI ===== #}
+  <section class="adm-kpis" aria-label="Indicateurs clés">
+    {% for kpi in d.kpis %}
+      <a class="adm-kpi" href="{{ kpi.url }}">
+        <div class="adm-kpi__top">
+          <span class="icon-badge icon-badge--sm icon-badge--{{ kpi.tone }}">
+            <i data-lucide="{{ kpi.icon }}" aria-hidden="true"></i>
+          </span>
+          <span class="adm-kpi__label">{{ kpi.label }}</span>
+        </div>
+        <strong class="adm-kpi__value">{{ kpi.value }}</strong>
+        <span class="adm-kpi__hint">{{ kpi.hint }}</span>
+      </a>
+    {% endfor %}
+  </section>
+
+  <div class="dash-grid">
+
+    {# ===== Évolution des inscriptions ===== #}
+    <section class="panel span-8" aria-labelledby="chart-evolution-title">
+      <div class="panel__head">
+        <div>
+          <h2 id="chart-evolution-title">Évolution des inscriptions</h2>
+          <p>Nouvelles inscriptions par mois, 6 derniers mois</p>
+        </div>
+        <a class="panel__link" href="{% url 'registration_access:entity_list' 'registrations' %}">
+          Détails <i data-lucide="arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+      {% include "core/components/chart.html" with chart_id="chart-evolution" type="line" data=d.charts.evolution label="Inscriptions par mois" empty="Aucune inscription sur les six derniers mois." %}
+    </section>
+
+    {# ===== Alertes ===== #}
+    <section class="panel span-4" aria-labelledby="alerts-title">
+      <div class="panel__head">
+        <div>
+          <h2 id="alerts-title">Notifications et alertes</h2>
+          <p>Points qui demandent votre attention</p>
+        </div>
+        {% if d.alerts %}<span class="tag tag--accent">{{ d.alerts|length }}</span>{% endif %}
+      </div>
+      {% if d.alerts %}
+        <ul class="list-clean">
+          {% for alert in d.alerts %}
+            <li>
+              <a class="alert-item" href="{{ alert.url }}">
+                <span class="icon-badge icon-badge--sm {% if alert.tone == 'danger' %}icon-badge--red{% elif alert.tone == 'warning' %}icon-badge--orange{% else %}icon-badge--blue{% endif %}">
+                  <i data-lucide="{{ alert.icon }}" aria-hidden="true"></i>
+                </span>
+                <span><strong>{{ alert.title }}</strong><span>{{ alert.text }}</span></span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="state state--compact">
+          <span class="icon-badge icon-badge--green"><i data-lucide="circle-check" aria-hidden="true"></i></span>
+          <h3>Tout est en ordre</h3>
+          <p>Aucune action urgente pour le moment.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {# ===== Répartition statuts ===== #}
+    <section class="panel span-4" aria-labelledby="chart-status-title">
+      <div class="panel__head">
+        <div>
+          <h2 id="chart-status-title">Statut des inscriptions</h2>
+          <p>Répartition actuelle</p>
+        </div>
+      </div>
+      {% include "core/components/chart.html" with chart_id="chart-status" type="doughnut" data=d.charts.status label="Inscriptions par statut" size="sm" empty="Aucune inscription enregistrée." %}
+    </section>
+
+    {# ===== Billets par catégorie ===== #}
+    <section class="panel span-4" aria-labelledby="chart-tickets-title">
+      <div class="panel__head">
+        <div>
+          <h2 id="chart-tickets-title">Billets par catégorie</h2>
+          <p>Standard, VIP et Groupe</p>
+        </div>
+      </div>
+      {% include "core/components/chart.html" with chart_id="chart-tickets" type="bar" data=d.charts.ticket_categories label="Billets par catégorie" size="sm" empty="Aucun billet émis." %}
+    </section>
+
+    {# ===== Activité récente ===== #}
+    <section class="panel span-7" aria-labelledby="activity-title">
+      <div class="panel__head">
+        <div>
+          <h2 id="activity-title">Activité récente</h2>
+          <p>Dernières inscriptions enregistrées</p>
+        </div>
+      </div>
+      {% if d.activities %}
+        <ul class="list-clean">
+          {% for item in d.activities %}
+            <li>
+              <a class="activity-item" href="{{ item.url }}">
+                <span class="icon-badge icon-badge--sm icon-badge--{{ item.tone }}">
+                  <i data-lucide="{{ item.icon }}" aria-hidden="true"></i>
+                </span>
+                <span>
+                  <p>{{ item.text }}</p>
+                  <small>{{ item.meta }}</small>
+                </span>
+                <time datetime="{{ item.when|date:'c' }}">{{ item.when|timesince }}</time>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="state state--compact">
+          <span class="icon-badge"><i data-lucide="inbox" aria-hidden="true"></i></span>
+          <h3>Aucune activité</h3>
+          <p>Les inscriptions apparaîtront ici au fil de l'eau.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {# ===== Actions rapides ===== #}
+    <div class="span-5" style="display:grid;gap:20px;align-content:start">
+      <section class="panel" aria-labelledby="quick-title">
+        <div class="panel__head">
+          <div><h2 id="quick-title">Actions rapides</h2></div>
+        </div>
+        <div class="quick-grid">
+          <a class="quick-action" href="{% url 'registration_access:entity_list' 'registrations' %}">
+            <span class="icon-badge icon-badge--sm icon-badge--blue"><i data-lucide="clipboard-list" aria-hidden="true"></i></span>
+            Inscriptions
+          </a>
+          <a class="quick-action" href="{% url 'registration_access:entity_create' 'registrations' %}">
+            <span class="icon-badge icon-badge--sm icon-badge--teal"><i data-lucide="plus-circle" aria-hidden="true"></i></span>
+            Nouvelle inscription
+          </a>
+          <a class="quick-action" href="{% url 'registration_access:entity_list' 'tickets' %}">
+            <span class="icon-badge icon-badge--sm icon-badge--orange"><i data-lucide="ticket" aria-hidden="true"></i></span>
+            Billets
+          </a>
+          <a class="quick-action" href="{% url 'registration_access:attendance_check_in' %}">
+            <span class="icon-badge icon-badge--sm icon-badge--green"><i data-lucide="scan-line" aria-hidden="true"></i></span>
+            Contrôle d'entrée
+          </a>
+          <a class="quick-action" href="{% url 'registration_access:entity_list' 'attendances' %}">
+            <span class="icon-badge icon-badge--sm"><i data-lucide="users" aria-hidden="true"></i></span>
+            Présences
+          </a>
+          <a class="quick-action" href="{% url 'registration_access:entity_list' 'access-points' %}">
+            <span class="icon-badge icon-badge--sm icon-badge--red"><i data-lucide="map-pin" aria-hidden="true"></i></span>
+            Points d'accès
+          </a>
+        </div>
+      </section>
+
+      {# ===== Gestion rapide modules ===== #}
+      <section class="panel" aria-labelledby="areas-title">
+        <div class="panel__head">
+          <div>
+            <h2 id="areas-title">Modules</h2>
+            <p>Accès direct aux sections</p>
+          </div>
+        </div>
+        <div style="display:grid;gap:8px;">
+          {% for area in access_areas %}
+            <div class="ra-module-row">
+              <span class="ra-module-icon ra-module-icon--{{ area.icon }}">
+                {% if area.icon == "registration" %}◎
+                {% elif area.icon == "ticket" %}◇
+                {% elif area.icon == "attendance" %}✓
+                {% else %}⌖{% endif %}
+              </span>
+              <span class="ra-module-info">
+                <strong>{{ area.title }}</strong>
+                <small>{{ area.description }}</small>
+              </span>
+              <div class="ra-module-actions">
+                <a href="{% url 'registration_access:entity_list' area.slug %}">Voir</a>
+                <a href="{% url 'registration_access:entity_create' area.slug %}">+ Ajouter</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+  </div>{# /dash-grid #}
+  {% endwith %}
+
+
+{% else %}
+
   <section class="access-hero">
     <div class="access-hero__copy">
       <p class="eyebrow">Registration &amp; Access</p>
-      {% if is_administrator %}
-        <h1>De l’inscription à l’entrée, chaque étape en harmonie.</h1>
-        <p>Gérez les inscriptions, les billets et l’accueil des participants à vos événements culturels.</p>
-      {% else %}
+      {% if user.is_authenticated %}
         <h1>Préparez votre prochaine sortie culturelle.</h1>
         <p>Inscrivez-vous à un événement et retrouvez vos inscriptions et billets dans votre espace personnel.</p>
+      {% else %}
+        <h1>De l'inscription à l'entrée, chaque étape en harmonie.</h1>
+        <p>Gérez les inscriptions, les billets et l'accueil des participants à vos événements culturels.</p>
       {% endif %}
       <div class="access-hero__actions">
-        {% if is_administrator %}
-          <a class="btn btn-primary" href="{% url 'registration_access:entity_list' 'registrations' %}">Gérer les inscriptions</a>
-          <a class="btn btn-secondary" href="{% url 'registration_access:entity_create' 'registrations' %}">Créer une inscription</a>
-        {% elif user.is_authenticated %}
-          <a class="btn btn-primary" href="{% url 'registration_access:registration_request' %}">M’inscrire à un événement</a>
+        {% if user.is_authenticated %}
+          <a class="btn btn-primary" href="{% url 'registration_access:registration_request' %}">M'inscrire à un événement</a>
           <a class="btn btn-secondary" href="{% url 'registration_access:my_registrations' %}">Mes inscriptions</a>
         {% else %}
           <a class="btn btn-primary" href="{% url 'users_teams:register' %}">Créer un compte participant</a>
@@ -42,45 +250,13 @@
     </div>
   </section>
 
-  {% if is_administrator %}
-  <section class="access-areas" aria-labelledby="access-areas-title">
-    <header class="section-heading access-section-heading">
-      <div>
-        <p class="eyebrow">Un parcours fluide</p>
-        <h2 id="access-areas-title">Inscriptions et accueil des participants</h2>
-        <p class="access-section-intro">Choisissez une activité pour consulter les éléments existants ou en ajouter de nouveaux.</p>
-      </div>
-    </header>
-
-    <div class="access-area-grid">
-      {% for area in access_areas %}
-        <article class="access-area-card">
-          <div class="access-area-card__top">
-            <span class="access-area-icon access-area-icon--{{ area.icon }}" aria-hidden="true">
-              {% if area.icon == "registration" %}◎
-              {% elif area.icon == "ticket" %}◇
-              {% elif area.icon == "attendance" %}✓
-              {% else %}⌖{% endif %}
-            </span>
-            <span class="access-area-arrow" aria-hidden="true">↗</span>
-          </div>
-          <h3>{{ area.title }}</h3>
-          <p>{{ area.description }}</p>
-          <div class="access-area-card__actions">
-            <a href="{% url 'registration_access:entity_list' area.slug %}">Consulter</a>
-            <a href="{% url 'registration_access:entity_create' area.slug %}">Ajouter <span aria-hidden="true">+</span></a>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
-  </section>
-  {% elif user.is_authenticated %}
+  {% if user.is_authenticated %}
   <section class="access-areas" aria-labelledby="access-areas-title">
     <header class="section-heading access-section-heading">
       <div>
         <p class="eyebrow">Votre espace</p>
         <h2 id="access-areas-title">Vos inscriptions et billets</h2>
-        <p class="access-section-intro">Confirmez un billet gratuit ou simulez le paiement d’un billet payant. Aucun débit réel n’est effectué ; le paiement en ligne sera intégré au Sprint 2.</p>
+        <p class="access-section-intro">Confirmez un billet gratuit ou simulez le paiement d'un billet payant. Aucun débit réel n'est effectué ; le paiement en ligne sera intégré au Sprint 2.</p>
       </div>
     </header>
     <div class="access-area-grid">
@@ -103,4 +279,12 @@
   </section>
   {% endif %}
 
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+  {% if is_administrator %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  {% endif %}
 {% endblock %}
