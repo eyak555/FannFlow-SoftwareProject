@@ -4,7 +4,7 @@
 <section class="page-card">
   <header class="page-heading"><div><p class="eyebrow">Fiche point d’accès</p><h1>{{ access_point.name }}</h1><p class="page-intro">Emplacement et capacité de cet accès.</p></div>{% if user.is_authenticated %}<a class="btn btn-primary" href="{% url 'registration_access:entity_update' 'access-points' access_point.pk %}">Modifier le point d’accès</a>{% endif %}</header>
   <dl class="detail-grid">
-    <div class="detail-item"><dt class="detail-label">Événement</dt><dd class="detail-value">{{ access_point.event_id }}</dd></div>
+    <div class="detail-item"><dt class="detail-label">Événement</dt><dd class="detail-value">{% if event_name %}{{ event_name }}{% else %}{{ access_point.event_id }}{% endif %}</dd></div>
     <div class="detail-item"><dt class="detail-label">Localisation</dt><dd class="detail-value">{{ access_point.location }}</dd></div>
     <div class="detail-item"><dt class="detail-label">Capacité maximale simultanée</dt><dd class="detail-value">{{ access_point.capacity }}</dd></div>
     <div class="detail-item"><dt class="detail-label">Présents</dt><dd class="detail-value">{{ current_occupancy }}</dd></div>
