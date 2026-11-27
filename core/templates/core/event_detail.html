@@ -24,10 +24,14 @@
       {% if user.is_authenticated %}
         <span class="btn btn-secondary" aria-disabled="true">Inscription indisponible</span>
       {% else %}
-        <p><a class="btn btn-primary" href="{% url 'registration_access:registration_request' %}?event_id={{ event.pk }}">Se connecter pour vérifier l’accès</a></p>
+        <p><a class="btn btn-primary" href="{{ registration_login_url }}">Se connecter pour vérifier l’accès</a></p>
       {% endif %}
     {% else %}
-      <p><a class="btn btn-primary" href="{% url 'registration_access:registration_request' %}?event_id={{ event.pk }}">Demander une inscription</a></p>
+      {% if user.is_authenticated %}
+        <p><a class="btn btn-primary" href="{% url 'registration_access:registration_request' %}?event_id={{ event.pk }}">Demander une inscription</a></p>
+      {% else %}
+        <p><a class="btn btn-primary" href="{{ registration_login_url }}">Se connecter pour demander une inscription</a></p>
+      {% endif %}
     {% endif %}
   </section>
   <section class="module-panel">

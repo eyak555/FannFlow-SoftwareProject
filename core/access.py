@@ -2,9 +2,8 @@
 
 - Front-office (site public) : accueil, catalogue des événements, espace
   participant. Accessible aux visiteurs et aux participants.
-- Back-office (espace de gestion) : toutes les pages des modules métier.
-  Réservé aux administrateurs, directeurs et organisateurs
-  (``User.has_management_access``).
+- Back-office (espace de gestion) : pages des modules métier, avec une
+  restriction propre au module Sponsors & Finance pour les rôles métier.
 
 Le contrôle est centralisé ici pour que chaque module reste inchangé :
 un module n'a rien à déclarer pour être protégé.
@@ -59,6 +58,22 @@ def can_access_backoffice(user):
     return bool(user and user.is_authenticated and getattr(user, "has_management_access", False))
 
 
+def can_access_namespace(user, namespace, url_name=""):
+    if not user or not user.is_authenticated:
+        return False
+    if getattr(user, "is_administrator", False):
+        return True
+
+    business_role = getattr(user, "business_role", "")
+    if namespace == "sponsors_finance":
+        return business_role in {"responsable_sponsors", "directeur"}
+    if namespace == "users_teams" and url_name in {"profile", "settings"}:
+        return bool(getattr(user, "has_management_access", False))
+    if namespace in BACKOFFICE_NAMESPACES:
+        return business_role in {"directeur", "organisateur"}
+    return False
+
+
 class BackOfficeAccessMiddleware:
     """Visiteur → connexion ; participant → 403 ; équipe → accès."""
 
@@ -75,6 +90,10 @@ class BackOfficeAccessMiddleware:
             return redirect_to_login(request.get_full_path())
         if is_participant_page(request.resolver_match):
             return None
-        if not can_access_backoffice(request.user):
+        if not can_access_namespace(
+            request.user,
+            request.resolver_match.namespace,
+            request.resolver_match.url_name,
+        ):
             raise PermissionDenied("Espace réservé à l’équipe d’organisation.")
         return None

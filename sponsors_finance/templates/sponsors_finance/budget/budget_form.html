@@ -1,0 +1,7 @@
+{% extends "core/layouts/form.html" %}
+
+{% block form_fields %}{% include "sponsors_finance/partials/_form_fields.html" %}{% endblock %}
+{% block form_actions %}
+  <button type="submit" class="btn btn-primary">Enregistrer</button>
+  <a class="btn btn-secondary" href="{{ cancel_url }}">Annuler</a>
+{% endblock %}

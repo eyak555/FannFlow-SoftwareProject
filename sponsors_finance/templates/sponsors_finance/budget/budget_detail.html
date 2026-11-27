@@ -1,0 +1,30 @@
+{% extends "core/layouts/detail.html" %}
+
+{% block page_actions %}
+  {% if can_manage_finance %}
+    <a class="btn btn-primary" href="{{ update_url }}">Modifier</a>
+    <a class="btn btn-danger" href="{{ delete_url }}">Supprimer</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {{ block.super }}
+  <section class="dashboard-panel" aria-labelledby="budget-summary-title">
+    <div class="panel-heading">
+      <div><p class="panel-kicker">Suivi financier</p><h2 id="budget-summary-title">Utilisation du budget</h2></div>
+    </div>
+    <div class="kpi-grid">
+      <article class="kpi-card"><div><p>Budget prévisionnel</p><strong>{{ financial_summary.planned_budget }} DT</strong></div></article>
+      <article class="kpi-card"><div><p>Total des dépenses</p><strong>{{ financial_summary.total_expenses }} DT</strong></div></article>
+      <article class="kpi-card"><div><p>Budget restant</p><strong>{{ financial_summary.remaining_budget }} DT</strong></div></article>
+      <article class="kpi-card"><div><p>Utilisation</p><strong>{{ utilization_percent|floatformat:1 }}%</strong></div></article>
+    </div>
+  </section>
+{% endblock %}
+
+{% block detail_fields %}
+  <dt>Événement</dt><dd>{{ item.event.title }}</dd>
+  <dt>Budget prévisionnel</dt><dd>{{ item.planned_amount }} DT</dd>
+  <dt>Créé le</dt><dd>{{ item.created_at|date:"j F Y à H:i" }}</dd>
+  <dt>Mis à jour le</dt><dd>{{ item.updated_at|date:"j F Y à H:i" }}</dd>
+{% endblock %}

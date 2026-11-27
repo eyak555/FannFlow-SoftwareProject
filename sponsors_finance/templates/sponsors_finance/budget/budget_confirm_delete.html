@@ -1,0 +1,6 @@
+{% extends "core/layouts/confirm_delete.html" %}
+
+{% block delete_message %}
+  <p>Voulez-vous vraiment supprimer le budget <strong>« {{ item_label }} »</strong> ?</p>
+  <p class="hint">Les dépenses associées à l’événement ne seront pas supprimées.</p>
+{% endblock %}

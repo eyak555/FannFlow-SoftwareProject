@@ -312,14 +312,15 @@ class AdminDashboardTests(TestCase):
     def test_kpis_come_from_database(self):
         make_user("dir@test.tn", business_role=User.BusinessRole.DIRECTOR)
         make_user("orga@test.tn", business_role=User.BusinessRole.ORGANIZER)
+        make_user("sponsor-manager@test.tn", business_role=User.BusinessRole.SPONSOR_MANAGER)
         make_user("off@test.tn", status=User.Status.INACTIVE)
         response = self.client.get(reverse("users_teams:home"))
         self.assertTemplateUsed(response, "users_teams/dashboard_admin.html")
         kpis = {kpi["label"]: kpi["value"] for kpi in response.context["admin"]["kpis"]}
-        self.assertEqual(kpis["Total utilisateurs"], 4)
+        self.assertEqual(kpis["Total utilisateurs"], 5)
         self.assertEqual(kpis["Administrateurs"], 1)
-        self.assertEqual(kpis["Directeurs et organisateurs"], 2)
-        self.assertEqual(kpis["Comptes actifs"], 3)
+        self.assertEqual(kpis["Équipe de gestion"], 3)
+        self.assertEqual(kpis["Comptes actifs"], 4)
         self.assertContains(response, "Bonjour, Ada")
 
     def test_charts_match_counts(self):
@@ -327,7 +328,16 @@ class AdminDashboardTests(TestCase):
         make_user("off@test.tn", status=User.Status.INACTIVE)
         charts = self.client.get(reverse("users_teams:home")).context["admin"]["charts"]
         roles = {row["label"]: row["value"] for row in charts["roles"]}
-        self.assertEqual(roles, {"Administrateurs": 1, "Directeurs": 0, "Organisateurs": 0, "Participants": 2})
+        self.assertEqual(
+            roles,
+            {
+                "Administrateurs": 1,
+                "Directeurs": 0,
+                "Organisateurs": 0,
+                "Responsables Sponsors": 0,
+                "Participants": 2,
+            },
+        )
         status = {row["label"]: row["value"] for row in charts["status"]}
         self.assertEqual(status, {"Actifs": 2, "Inactifs": 1})
         self.assertEqual(sum(row["value"] for row in charts["evolution"]), 3)

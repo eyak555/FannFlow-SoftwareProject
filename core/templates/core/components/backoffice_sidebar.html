@@ -1,7 +1,7 @@
 {% load static %}
 <aside class="bo-sidebar" id="bo-sidebar" data-sidebar aria-label="Navigation de l’espace de gestion">
   <div class="bo-sidebar__head">
-    <a class="fo-brand fo-brand--light" href="{% url 'users_teams:home' %}" aria-label="Tableau de bord FannFlow">
+    <a class="fo-brand fo-brand--light" href="{% if can_access_user_management %}{% url 'users_teams:home' %}{% else %}{% url 'sponsors_finance:home' %}{% endif %}" aria-label="Tableau de bord FannFlow">
       <span class="fo-brand__mark"><img src="{% static 'core/img/logo.png' %}" alt="" width="30" height="30"></span>
       <span class="fo-brand__name">Fann<b>Flow</b></span>
     </a>
@@ -10,23 +10,25 @@
 
   {% with ns=current_namespace url=current_url_name %}
   <nav class="bo-nav">
-    <p class="bo-nav__label">Administration</p>
-    <a class="bo-nav__link" href="{% url 'users_teams:home' %}" {% if ns == "users_teams" and url == "home" %}aria-current="page"{% endif %}>
-      <i data-lucide="layout-dashboard" aria-hidden="true"></i> Vue générale
-    </a>
-    {% if user.is_administrator %}
-      <a class="bo-nav__link" href="{% url 'users_teams:user_list' %}" {% if ns == "users_teams" and url == "user_list" or ns == "users_teams" and url == "user_detail" or ns == "users_teams" and url == "user_update" or ns == "users_teams" and url == "user_delete" %}aria-current="page"{% endif %}>
-        <i data-lucide="users" aria-hidden="true"></i> Utilisateurs
+    {% if can_access_user_management %}
+      <p class="bo-nav__label">Administration</p>
+      <a class="bo-nav__link" href="{% url 'users_teams:home' %}" {% if ns == "users_teams" and url == "home" %}aria-current="page"{% endif %}>
+        <i data-lucide="layout-dashboard" aria-hidden="true"></i> Vue générale
       </a>
-      <a class="bo-nav__link" href="{% url 'users_teams:user_create' %}" {% if ns == "users_teams" and url == "user_create" %}aria-current="page"{% endif %}>
-        <i data-lucide="user-plus" aria-hidden="true"></i> Nouvel utilisateur
+      {% if user.is_administrator %}
+        <a class="bo-nav__link" href="{% url 'users_teams:user_list' %}" {% if ns == "users_teams" and url == "user_list" or ns == "users_teams" and url == "user_detail" or ns == "users_teams" and url == "user_update" or ns == "users_teams" and url == "user_delete" %}aria-current="page"{% endif %}>
+          <i data-lucide="users" aria-hidden="true"></i> Utilisateurs
+        </a>
+        <a class="bo-nav__link" href="{% url 'users_teams:user_create' %}" {% if ns == "users_teams" and url == "user_create" %}aria-current="page"{% endif %}>
+          <i data-lucide="user-plus" aria-hidden="true"></i> Nouvel utilisateur
+        </a>
+      {% endif %}
+      <a class="bo-nav__link" href="{% url 'users_teams:organizers' %}" {% if ns == "users_teams" and url == "organizers" %}aria-current="page"{% endif %}>
+        <i data-lucide="calendar-check" aria-hidden="true"></i> Organisateurs d’événements
       </a>
     {% endif %}
-    <a class="bo-nav__link" href="{% url 'users_teams:organizers' %}" {% if ns == "users_teams" and url == "organizers" %}aria-current="page"{% endif %}>
-      <i data-lucide="calendar-check" aria-hidden="true"></i> Organisateurs d’événements
-    </a>
 
-    <p class="bo-nav__label">Modules</p>
+    {% if fannflow_modules %}<p class="bo-nav__label">Modules</p>{% endif %}
     {% for module in fannflow_modules %}
       <details class="bo-nav__group" {% if ns == module.app_name %}open{% endif %}>
         <summary class="bo-nav__link{% if ns == module.app_name %} is-current{% endif %}">

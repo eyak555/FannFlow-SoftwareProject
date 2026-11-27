@@ -1,0 +1,33 @@
+{% extends "core/layouts/list.html" %}
+
+{% block page_actions %}
+  {% if can_manage_finance %}
+    <a class="btn btn-primary" href="{% url 'sponsors_finance:entity_create' entity_slug %}">
+      <i data-lucide="plus" aria-hidden="true"></i> Ajouter un forfait
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block filters %}
+  <p class="lede">Les forfaits sont partagés entre tous les événements. Le prix négocié est enregistré dans chaque partenariat.</p>
+{% endblock %}
+
+{% block table_head %}
+  <tr><th scope="col">Forfait</th><th scope="col">Prix standard</th><th scope="col">Description</th><th scope="col">Avantages</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+{% endblock %}
+
+{% block table_body %}
+  {% for item in items %}
+    <tr>
+      <th scope="row"><a href="{% url 'sponsors_finance:entity_detail' entity_slug item.pk %}">{{ item.get_package_name_display }}</a></th>
+      <td data-label="Prix standard">{{ item.price }} DT</td>
+      <td data-label="Description">{{ item.description|truncatewords:20 }}</td>
+      <td data-label="Avantages">
+        {% for benefit in item.benefits %}{{ benefit }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+      </td>
+      {% include "sponsors_finance/partials/_row_actions.html" %}
+    </tr>
+  {% empty %}
+    <tr><td class="empty-cell" colspan="5"><p>Aucun forfait n’a encore été configuré.</p>{% if can_manage_finance %}<a class="btn btn-primary" href="{% url 'sponsors_finance:entity_create' entity_slug %}">Ajouter un forfait</a>{% endif %}</td></tr>
+  {% endfor %}
+{% endblock %}

@@ -12,7 +12,7 @@ from .models import AccountActivity, User
 MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
 
 # Couleurs : catégorielles pour les rôles (ordre fixe), statut pour actif/inactif.
-ROLE_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#6250d6"]
+ROLE_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#6250d6"]
 STATUS_ACTIVE_COLOR = "#2f8a4c"
 STATUS_INACTIVE_COLOR = "#9aa5b1"
 
@@ -139,6 +139,9 @@ def _counts():
         admins=Count("pk", filter=Q(role=User.Role.ADMIN)),
         directors=Count("pk", filter=Q(business_role=User.BusinessRole.DIRECTOR)),
         organizers=Count("pk", filter=Q(business_role=User.BusinessRole.ORGANIZER)),
+        sponsor_managers=Count(
+            "pk", filter=Q(business_role=User.BusinessRole.SPONSOR_MANAGER)
+        ),
         active=Count("pk", filter=Q(status=User.Status.ACTIVE)),
         new_this_month=Count("pk", filter=Q(created_at__gte=month_start)),
         never_logged=Count("pk", filter=Q(last_login__isnull=True, status=User.Status.ACTIVE)),
@@ -167,12 +170,16 @@ def _notifications(counts):
 def admin_dashboard():
     counts = _counts()
     total = counts["total"] or 0
-    team = counts["directors"] + counts["organizers"]
+    team = counts["directors"] + counts["organizers"] + counts["sponsor_managers"]
     inactive = total - counts["active"]
     # Un administrateur avec rôle métier est compté une seule fois, comme administrateur.
     participants = User.objects.filter(role=User.Role.PARTICIPANT, business_role="").count()
     team_non_admin_directors = User.objects.filter(role=User.Role.PARTICIPANT, business_role=User.BusinessRole.DIRECTOR).count()
     team_non_admin_organizers = User.objects.filter(role=User.Role.PARTICIPANT, business_role=User.BusinessRole.ORGANIZER).count()
+    team_non_admin_sponsor_managers = User.objects.filter(
+        role=User.Role.PARTICIPANT,
+        business_role=User.BusinessRole.SPONSOR_MANAGER,
+    ).count()
 
     def pct(value):
         return round(value * 100 / total) if total else 0
@@ -185,8 +192,8 @@ def admin_dashboard():
         {"label": "Administrateurs", "value": counts["admins"], "icon": "shield-check", "tone": "orange",
          "hint": f"{pct(counts['admins'])} % des comptes", "progress": pct(counts["admins"]),
          "url": f"{users_url}?role={User.Role.ADMIN}"},
-        {"label": "Directeurs et organisateurs", "value": team, "icon": "briefcase", "tone": "teal",
-         "hint": f"{counts['directors']} directeur(s) · {counts['organizers']} organisateur(s)", "progress": pct(team),
+        {"label": "Équipe de gestion", "value": team, "icon": "briefcase", "tone": "teal",
+         "hint": f"{counts['directors']} directeur(s) · {counts['organizers']} organisateur(s) · {counts['sponsor_managers']} responsable(s) sponsors", "progress": pct(team),
          "url": reverse("users_teams:organizers")},
         {"label": "Comptes actifs", "value": counts["active"], "icon": "user-check", "tone": "green",
          "hint": f"{pct(counts['active'])} % actifs · {inactive} inactif(s)", "progress": pct(counts["active"]),
@@ -201,7 +208,8 @@ def admin_dashboard():
                 {"label": "Administrateurs", "value": counts["admins"], "color": ROLE_COLORS[0]},
                 {"label": "Directeurs", "value": team_non_admin_directors, "color": ROLE_COLORS[1]},
                 {"label": "Organisateurs", "value": team_non_admin_organizers, "color": ROLE_COLORS[2]},
-                {"label": "Participants", "value": participants, "color": ROLE_COLORS[3]},
+                {"label": "Responsables Sponsors", "value": team_non_admin_sponsor_managers, "color": ROLE_COLORS[3]},
+                {"label": "Participants", "value": participants, "color": ROLE_COLORS[4]},
             ],
             "status": [
                 {"label": "Actifs", "value": counts["active"], "color": STATUS_ACTIVE_COLOR},

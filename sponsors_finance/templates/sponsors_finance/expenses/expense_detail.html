@@ -1,0 +1,16 @@
+{% extends "core/layouts/detail.html" %}
+
+{% block page_actions %}
+  {% if can_manage_finance %}
+    <a class="btn btn-primary" href="{{ update_url }}">Modifier</a>
+    <a class="btn btn-danger" href="{{ delete_url }}">Supprimer</a>
+  {% endif %}
+{% endblock %}
+
+{% block detail_fields %}
+  <dt>Événement</dt><dd>{{ item.event.title }}</dd>
+  <dt>Catégorie</dt><dd>{{ item.get_category_display }}</dd>
+  <dt>Montant</dt><dd>{{ item.amount }} DT</dd>
+  <dt>Date</dt><dd>{{ item.date|date:"j F Y" }}</dd>
+  <dt>Description</dt><dd>{{ item.description|linebreaksbr }}</dd>
+{% endblock %}

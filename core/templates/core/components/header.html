@@ -54,7 +54,7 @@
       <div class="fo-actions">
         {% if user.is_authenticated %}
           {% if can_access_backoffice %}
-            <a class="btn btn-accent btn-sm" href="{% url 'users_teams:home' %}">
+            <a class="btn btn-accent btn-sm" href="{{ management_home_url }}">
               <i data-lucide="layout-dashboard" aria-hidden="true"></i> Espace de gestion
             </a>
           {% endif %}

@@ -1,0 +1,24 @@
+{% extends "core/layouts/detail.html" %}
+
+{% block page_actions %}
+  {% if can_manage_finance %}
+    <a class="btn btn-primary" href="{{ update_url }}">Modifier</a>
+    <a class="btn btn-danger" href="{{ delete_url }}">Supprimer</a>
+  {% endif %}
+{% endblock %}
+
+{% block detail_fields %}
+  <dt>Sponsor</dt>
+  <dd>
+    <a href="{% url 'sponsors_finance:entity_detail' 'sponsors' item.sponsor.pk %}">{{ item.sponsor.company_name }}</a>
+    · <a href="mailto:{{ item.sponsor.email }}">{{ item.sponsor.email }}</a>
+  </dd>
+  <dt>Événement</dt><dd>{{ item.event.title }}</dd>
+  <dt>Forfait sélectionné</dt>
+  <dd><a href="{% url 'sponsors_finance:entity_detail' 'sponsorship-packages' item.package.pk %}">{{ item.package.get_package_name_display }}</a></dd>
+  <dt>Prix standard du forfait</dt><dd>{{ item.package.price }} DT</dd>
+  <dt>Montant négocié final</dt><dd><strong>{{ item.amount }} DT</strong></dd>
+  <dt>Date de début</dt><dd>{{ item.start_date|date:"j F Y" }}</dd>
+  <dt>Date de fin</dt><dd>{{ item.end_date|date:"j F Y" }}</dd>
+  <dt>Statut</dt><dd>{{ item.get_status_display }}</dd>
+{% endblock %}

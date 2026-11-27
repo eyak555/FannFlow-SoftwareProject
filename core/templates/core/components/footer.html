@@ -24,7 +24,7 @@
       <strong>Compte</strong>
       {% if user.is_authenticated %}
         {% if can_access_backoffice %}
-          <a href="{% url 'users_teams:home' %}">Espace de gestion</a>
+          <a href="{{ management_home_url }}">Espace de gestion</a>
         {% else %}
           <a href="{% url 'core:my_space' %}">Mon espace</a>
         {% endif %}

@@ -1,0 +1,42 @@
+{% extends "core/layouts/detail.html" %}
+
+{% block page_actions %}
+  {% if can_manage_finance %}
+    <a class="btn btn-primary" href="{{ update_url }}">Modifier</a>
+    <a class="btn btn-danger" href="{{ delete_url }}">Supprimer</a>
+  {% endif %}
+{% endblock %}
+
+{% block detail_fields %}
+  <dt>Entreprise</dt><dd>{{ item.company_name }}</dd>
+  <dt>Secteur</dt><dd>{{ item.industry }}</dd>
+  <dt>Adresse e-mail</dt><dd><a href="mailto:{{ item.email }}">{{ item.email }}</a></dd>
+  <dt>Téléphone</dt><dd><a href="tel:{{ item.phone }}">{{ item.phone }}</a></dd>
+  <dt>Adresse</dt><dd>{{ item.address|linebreaksbr }}</dd>
+  <dt>Public cible</dt><dd>{{ item.target_audience|linebreaksbr }}</dd>
+{% endblock %}
+
+{% block content %}
+  {{ block.super }}
+  <section aria-labelledby="sponsor-partnerships-title">
+    <header class="page-header"><div><h2 id="sponsor-partnerships-title">Historique des partenariats</h2></div></header>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Événement</th><th>Forfait</th><th>Montant négocié</th><th>Période</th><th>Statut</th></tr></thead>
+        <tbody>
+          {% for partnership in item.partnerships.all %}
+            <tr>
+              <th scope="row"><a href="{% url 'sponsors_finance:entity_detail' 'partnerships' partnership.pk %}">{{ partnership.event.title }}</a></th>
+              <td>{{ partnership.package.get_package_name_display }}</td>
+              <td>{{ partnership.amount }} DT</td>
+              <td>{{ partnership.start_date|date:"d/m/Y" }} – {{ partnership.end_date|date:"d/m/Y" }}</td>
+              <td>{{ partnership.get_status_display }}</td>
+            </tr>
+          {% empty %}
+            <tr><td class="empty-cell" colspan="5">Ce sponsor n’a pas encore de partenariat.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,13 @@
+<td class="table-actions">
+  <a class="table-action" href="{% url 'sponsors_finance:entity_detail' entity_slug item.pk %}" aria-label="Consulter {{ item }}">
+    <i data-lucide="eye" aria-hidden="true"></i> Consulter
+  </a>
+  {% if can_manage_finance %}
+    <a class="table-action" href="{% url 'sponsors_finance:entity_update' entity_slug item.pk %}" aria-label="Modifier {{ item }}">
+      <i data-lucide="pencil" aria-hidden="true"></i> Modifier
+    </a>
+    <a class="table-action table-action--delete" href="{% url 'sponsors_finance:entity_delete' entity_slug item.pk %}" aria-label="Supprimer {{ item }}">
+      <i data-lucide="trash-2" aria-hidden="true"></i> Supprimer
+    </a>
+  {% endif %}
+</td>

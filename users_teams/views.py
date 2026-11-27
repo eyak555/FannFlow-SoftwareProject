@@ -11,6 +11,8 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
+from core.access import can_access_namespace
+
 from core.placeholders import render_crud_placeholder
 from core.services import dashboard_data
 from .entities import MODULE
@@ -24,8 +26,10 @@ USER_ENTITY = next(entity for entity in MODULE["entities"] if entity["slug"] == 
 
 def get_home_url_for(user):
     """Redirection après connexion selon le rôle."""
-    if user.has_management_access:
+    if can_access_namespace(user, "users_teams", "home"):
         return reverse("users_teams:home")
+    if can_access_namespace(user, "sponsors_finance", "home"):
+        return reverse("sponsors_finance:home")
     return reverse("core:home")
 
 
@@ -397,9 +401,14 @@ class OrganizersView(ManagementAccessRequiredMixin, ListView):
     context_object_name = "members"
 
     def get_queryset(self):
-        queryset = User.objects.exclude(business_role="").order_by("business_role", "last_name", "first_name")
+        queryset = User.objects.filter(
+            business_role__in=(
+                User.BusinessRole.DIRECTOR,
+                User.BusinessRole.ORGANIZER,
+            )
+        ).order_by("business_role", "last_name", "first_name")
         business_role = self.request.GET.get("business_role", "")
-        if business_role in User.BusinessRole.values:
+        if business_role in (User.BusinessRole.DIRECTOR, User.BusinessRole.ORGANIZER):
             queryset = queryset.filter(business_role=business_role)
         return queryset
 
@@ -413,7 +422,12 @@ class OrganizersView(ManagementAccessRequiredMixin, ListView):
             rows=[{"user": m, "events": (assignments or {}).get(m.pk, [])} for m in context["members"]],
             events_available=assignments is not None,
             selected_business_role=self.request.GET.get("business_role", ""),
-            business_role_choices=User.BusinessRole.choices,
+            business_role_choices=[
+                choice
+                for choice in User.BusinessRole.choices
+                if choice[0]
+                in (User.BusinessRole.DIRECTOR, User.BusinessRole.ORGANIZER)
+            ],
             counts={
                 "directors": User.objects.filter(business_role=User.BusinessRole.DIRECTOR).count(),
                 "organizers": User.objects.filter(business_role=User.BusinessRole.ORGANIZER).count(),
