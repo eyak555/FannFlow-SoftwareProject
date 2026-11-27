@@ -67,6 +67,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     class BusinessRole(models.TextChoices):
         DIRECTOR = "directeur", "Directeur"
         ORGANIZER = "organisateur", "Organisateur"
+        SPONSOR_MANAGER = "responsable_sponsors", "Responsable Sponsors"
 
     class Status(models.TextChoices):
         ACTIVE = "actif", "Actif"

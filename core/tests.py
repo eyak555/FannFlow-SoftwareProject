@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.test import TestCase
 from django.urls import reverse
 
@@ -86,7 +88,16 @@ class BackOfficeAccessTests(TestCase):
             self.client.force_login(make_user(f"{role}@test.tn", business_role=role))
             for name in self.MODULE_URLS:
                 with self.subTest(role=role, name=name):
-                    self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+                    expected_status = (
+                        403
+                        if role == User.BusinessRole.ORGANIZER
+                        and name == "sponsors_finance:home"
+                        else 200
+                    )
+                    self.assertEqual(
+                        self.client.get(reverse(name)).status_code,
+                        expected_status,
+                    )
 
     def test_auth_pages_stay_public(self):
         for name in ("users_teams:login", "users_teams:register", "users_teams:password_forgotten"):
@@ -144,6 +155,18 @@ class MySpaceTests(TestCase):
         self.client.force_login(make_user("orga@test.tn", business_role=User.BusinessRole.ORGANIZER))
         self.assertRedirects(self.client.get(reverse("core:my_space")), reverse("users_teams:home"))
 
+    def test_sponsor_manager_is_sent_to_finance_dashboard(self):
+        self.client.force_login(
+            make_user(
+                "sponsor-manager@test.tn",
+                business_role=User.BusinessRole.SPONSOR_MANAGER,
+            )
+        )
+        self.assertRedirects(
+            self.client.get(reverse("core:my_space")),
+            reverse("sponsors_finance:home"),
+        )
+
 
 class EventSearchTests(TestCase):
     """Filtres de la barre de recherche (mot clé, salle, période)."""
@@ -174,6 +197,54 @@ class EventSearchTests(TestCase):
                 response = self.client.get(reverse(name), {"q": "x", "date": "semaine"})
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, 'class="event-search"')
+
+    def test_anonymous_can_browse_events_but_must_sign_in_to_register(self):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        now = timezone.now()
+        event = Event.objects.create(
+            title="Concert public",
+            description="Un événement visible à tous.",
+            event_type=Event.EventType.CONCERT,
+            category=Event.Category.MUSIC,
+            start_date=now + timedelta(days=2),
+            end_date=now + timedelta(days=2, hours=2),
+            registration_deadline=now + timedelta(days=1),
+            capacity=100,
+            location="Salle principale",
+            status=Event.Status.PUBLISHED,
+        )
+        list_response = self.client.get(reverse("core:events"))
+        self.assertEqual(list_response.status_code, 200)
+        self.assertContains(list_response, event.title)
+
+        detail_response = self.client.get(
+            reverse("core:event_detail", args=[event.pk])
+        )
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(detail_response, "Se connecter pour demander une inscription")
+
+        registration_path = (
+            f"{reverse('registration_access:registration_request')}?"
+            f"{urlencode({'event_id': event.pk})}"
+        )
+        login_url = (
+            f"{reverse('users_teams:login')}?"
+            f"{urlencode({'next': registration_path})}"
+        )
+        self.assertEqual(detail_response.context["registration_login_url"], login_url)
+
+        registration_url = reverse("registration_access:registration_request")
+        response = self.client.get(registration_url, {"event_id": event.pk})
+        self.assertRedirects(response, login_url, fetch_redirect_response=False)
+        self.assertFalse(Registration.objects.filter(event_id=event.pk).exists())
+
+        self.client.force_login(make_user("event-guest@test.tn"))
+        self.assertEqual(
+            self.client.get(registration_url, {"event_id": event.pk}).status_code,
+            200,
+        )
 
     def test_public_event_catalog_uses_database_pagination_and_filters(self):
         from datetime import timedelta

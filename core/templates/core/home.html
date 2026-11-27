@@ -335,7 +335,7 @@
         <div class="cta-band__actions">
           {% if user.is_authenticated %}
             {% if can_access_backoffice %}
-              <a class="btn btn-accent btn-lg" href="{% url 'users_teams:home' %}"><i data-lucide="layout-dashboard" aria-hidden="true"></i> Ouvrir le tableau de bord</a>
+              <a class="btn btn-accent btn-lg" href="{{ management_home_url }}"><i data-lucide="layout-dashboard" aria-hidden="true"></i> Ouvrir le tableau de bord</a>
             {% else %}
               <a class="btn btn-accent btn-lg" href="{% url 'core:my_space' %}"><i data-lucide="ticket" aria-hidden="true"></i> Voir mes billets</a>
             {% endif %}

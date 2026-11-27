@@ -1,0 +1,20 @@
+{% extends "core/layouts/detail.html" %}
+
+{% block page_actions %}
+  {% if can_manage_finance %}
+    <a class="btn btn-primary" href="{{ update_url }}">Modifier</a>
+    <a class="btn btn-danger" href="{{ delete_url }}">Supprimer</a>
+  {% endif %}
+{% endblock %}
+
+{% block detail_fields %}
+  <dt>Type de forfait</dt><dd>{{ item.get_package_name_display }}</dd>
+  <dt>Prix standard</dt><dd>{{ item.price }} DT</dd>
+  <dt>Description</dt><dd>{{ item.description|linebreaksbr }}</dd>
+  <dt>Avantages</dt>
+  <dd>
+    <ul>
+      {% for benefit in item.benefits %}<li>{{ benefit }}</li>{% empty %}<li>Aucun avantage renseigné.</li>{% endfor %}
+    </ul>
+  </dd>
+{% endblock %}

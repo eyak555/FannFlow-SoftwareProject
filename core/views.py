@@ -8,14 +8,14 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from core.access import can_access_backoffice
+from core.access import can_access_namespace
 from core.services import event_card_payload, platform_snapshot, upcoming_events
 from events_program.models import Event
 
 
 def _organize_url(user):
     target = reverse("events_program:home")
-    if can_access_backoffice(user):
+    if can_access_namespace(user, "events_program", "home"):
         return target
     if user.is_authenticated:
         return ""
@@ -224,6 +224,8 @@ def event_detail(request, pk):
         pk=pk,
         status=Event.Status.PUBLISHED,
     )
+    registration_url = reverse("registration_access:registration_request")
+    registration_url = f"{registration_url}?{urlencode({'event_id': event.pk})}"
     return render(
         request,
         "core/event_detail.html",
@@ -231,6 +233,9 @@ def event_detail(request, pk):
             "event": event,
             "event_image": event.display_image_url,
             "event_access_error": event.age_access_error(request.user),
+            "registration_login_url": (
+                f"{reverse('users_teams:login')}?{urlencode({'next': registration_url})}"
+            ),
             "page_title": event.title,
         },
     )
@@ -239,8 +244,10 @@ def event_detail(request, pk):
 @login_required
 def my_space(request):
     """Espace participant : ses inscriptions et ses billets."""
-    if can_access_backoffice(request.user):
+    if can_access_namespace(request.user, "users_teams", "home"):
         return redirect("users_teams:home")
+    if can_access_namespace(request.user, "sponsors_finance", "home"):
+        return redirect("sponsors_finance:home")
 
     from registration_access.qr_codes import qr_code_data_uri
     from registration_access.services import ticket_is_ready_for_qr

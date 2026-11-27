@@ -2,7 +2,7 @@ from urllib.parse import urlencode
 
 from django.urls import reverse
 
-from core.access import can_access_backoffice, is_backoffice_match
+from core.access import can_access_backoffice, can_access_namespace, is_backoffice_match
 from core.registry import get_modules
 from resources_operations.entities import get_accessible_sections
 
@@ -16,7 +16,7 @@ PARTICIPANT_DESTINATIONS = {
 def _module_link(module, user):
     """Lien d'une carte module selon le profil du visiteur."""
     target = reverse(f"{module['app_name']}:home")
-    if can_access_backoffice(user):
+    if can_access_namespace(user, module["app_name"], "home"):
         return target, False
     if not user.is_authenticated:
         return f"{reverse('users_teams:login')}?{urlencode({'next': target})}", False
@@ -28,18 +28,27 @@ def _module_link(module, user):
 
 def navigation(request):
     user = request.user
+    match = request.resolver_match
+    namespace = getattr(match, "namespace", "")
+    url_name = getattr(match, "url_name", "")
     has_backoffice_access = can_access_backoffice(user)
+    is_backoffice = is_backoffice_match(match) and can_access_namespace(
+        user, namespace, url_name
+    )
     modules = []
     for module in get_modules():
         href, locked = _module_link(module, user)
-        if has_backoffice_access and module["app_name"] == "resources_operations":
-            module = {**module, "entities": get_accessible_sections(user)}
-        modules.append({**module, "href": href, "locked": locked})
-
-    match = request.resolver_match
-    is_backoffice = is_backoffice_match(match) and has_backoffice_access
-    namespace = getattr(match, "namespace", "")
+        if not is_backoffice or can_access_namespace(user, module["app_name"], "home"):
+            if has_backoffice_access and module["app_name"] == "resources_operations":
+                module = {**module, "entities": get_accessible_sections(user)}
+            modules.append({**module, "href": href, "locked": locked})
     current_module = next((m for m in modules if m["app_name"] == namespace), None)
+    if can_access_namespace(user, "users_teams", "home"):
+        management_home_url = reverse("users_teams:home")
+    elif can_access_namespace(user, "sponsors_finance", "home"):
+        management_home_url = reverse("sponsors_finance:home")
+    else:
+        management_home_url = ""
 
     # Cloche du back-office : notifications d'administration des comptes.
     topbar_notifications = None
@@ -70,4 +79,6 @@ def navigation(request):
         "can_access_backoffice": has_backoffice_access,
         "current_namespace": getattr(match, "namespace", ""),
         "current_url_name": getattr(match, "url_name", ""),
+        "can_access_user_management": can_access_namespace(user, "users_teams", "home"),
+        "management_home_url": management_home_url,
     }
